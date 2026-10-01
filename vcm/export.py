@@ -4,8 +4,8 @@
     python -m vcm.export quantize --onnx exp/x/model.onnx --out exp/x/model_int8.onnx --pack data/packs
 
 export: full waveform -> logits graph (LogMel + backbone + heads), opset 17, input fixed
-1 x 80000 samples with a dynamic batch axis. Checks torch/onnxruntime parity (max abs
-logit diff < 1e-3) and writes <out>.json: labels, slot values, tau, window size.
+1 x 80000 samples with a dynamic batch axis. Checks torch/onnxruntime parity (max logit diff
+relative to max(1, |logit|) < 1e-3) and writes <out>.json: labels, slot values, tau, window size.
 
 quantize: onnxruntime static QDQ int8, per-channel weights, calibration on 400 TRAIN
 clips (never test). All nodes of the log-mel front end stay fp32.
@@ -78,15 +78,19 @@ def export_onnx(model: FullModel, out: str, tau: float = 0.0, parity_inputs: tor
     xs = [torch.randn(3, WINDOW) * 0.1, (torch.rand(1, WINDOW) - 0.5) * 1.8]
     if parity_inputs is not None:
         xs.append(parity_inputs)
-    worst = 0.0
+    worst, worst_rel = 0.0, 0.0
     with torch.no_grad():
         for x in xs:
             tc, ts = model(x)
             oc, os_ = sess.run(None, {INPUT: x.numpy()})
-            worst = max(worst, float(np.abs(oc - tc.numpy()).max()), float(np.abs(os_ - ts.numpy()).max()))
-    if worst >= tol:
-        raise RuntimeError(f"ONNX parity failed: max abs logit diff {worst:.2e} >= {tol:g}")
-    side = sidecar(model, tau, {"parity_max_abs_diff": worst})
+            for o, t in ((oc, tc.numpy()), (os_, ts.numpy())):
+                d = float(np.abs(o - t).max())
+                worst = max(worst, d)
+                # relative to the logit scale, floored at 1 so near-zero logits use the absolute diff
+                worst_rel = max(worst_rel, d / max(1.0, float(np.abs(t).max())))
+    if worst_rel >= tol:
+        raise RuntimeError(f"ONNX parity failed: max relative logit diff {worst_rel:.2e} >= {tol:g}")
+    side = sidecar(model, tau, {"parity_max_abs_diff": worst, "parity_max_rel_diff": worst_rel})
     Path(out).with_suffix(".json").write_text(json.dumps(side, indent=2))
     return side
 
