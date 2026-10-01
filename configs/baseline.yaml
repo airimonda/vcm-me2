@@ -1,0 +1,3 @@
+# Same-size baseline for the deck: DS-CNN tier S/M, identical data/aug/stopping.
+arch: ds_cnn
+tier: S

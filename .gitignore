@@ -1,0 +1,13 @@
+data/
+packs/
+exp/
+*.pt
+*.onnx
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+# released models (add with git add -f when published)
+!released/*.onnx
+!released/*.pt

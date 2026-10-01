@@ -1,0 +1,14 @@
+[project]
+name = "vcm"
+version = "0.1.0"
+description = "Tiny on-device Voice Command Model (from scratch)"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.setuptools]
+packages = ["vcm"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]

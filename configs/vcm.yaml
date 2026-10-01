@@ -1,0 +1,26 @@
+# Default training config. Override on the CLI: --arch --tier --seed --aug --epochs --out ...
+arch: bc_resnet          # ds_cnn | bc_resnet | tc_resnet | matchbox | crnn | conformer
+tier: S                  # S ~100k params, M ~300k params
+seed: 0
+aug: heavy               # none | light | heavy
+pack_dir: data/packs
+noise: data/packs/noise.npz
+out: exp/run
+epochs: 60               # max_epochs; cosine schedule runs over this horizon
+batch_size: 64
+lr: 0.003
+weight_decay: 0.01
+warmup_epochs: 2
+label_smoothing: 0.1
+real_weight: 3.0         # sampling weight of real (non-synthetic) voices
+num_workers: 0
+grad_clip: 5.0
+eval_tau: 0.0            # reject threshold used for the per-epoch test log (0 = argmax only)
+early_stop:
+  n: 3
+  min_rel_impr: 0.02
+  min_epochs: 8
+  max_epochs: 60
+max_train_clips: null    # smoke runs
+max_test_clips: null
+device: auto             # auto: cuda > mps > cpu
