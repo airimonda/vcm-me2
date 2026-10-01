@@ -12,10 +12,11 @@ lr: 0.003
 weight_decay: 0.01
 warmup_epochs: 2
 label_smoothing: 0.1
-real_weight: 3.0         # sampling weight of real (non-synthetic) voices
+real_weight: 5.0         # sampling weight of real (non-synthetic) voices (~65% of draws)
 oos_weight: 3.0          # sampling weight of OUT_OF_SCOPE clips (1.9% of train)
 num_workers: 0
 grad_clip: 5.0
+select_real_weight: 0.5  # best.pt/early stop score = 0.5 all-clips + 0.5 real-voice variation bal acc
 eval_tau: 0.0            # reject threshold used for the per-epoch test log (0 = argmax only)
 early_stop:
   n: 3

@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 COLS = ["arch", "tier", "seed", "params", "best_epoch", "stop_epoch", "stop_reason",
-        "test_variation_bal_acc", "command_acc", "oos_false_accept"]
+        "test_select_score", "test_variation_bal_acc", "test_real_variation_bal_acc", "command_acc", "oos_false_accept"]
 
 
 def collect(exp: Path) -> pd.DataFrame:
@@ -16,7 +16,8 @@ def collect(exp: Path) -> pd.DataFrame:
         b = s.get("best") or {}
         rows.append({"arch": s["arch"], "tier": s["tier"], "seed": s["seed"], "params": s["params"],
                      "best_epoch": s["best_epoch"], "stop_epoch": s["stop_epoch"], "stop_reason": s["stop_reason"],
-                     "test_variation_bal_acc": b.get("variation_bal_acc"), "command_acc": b.get("command_acc"),
+                     "test_select_score": b.get("select_score"), "test_variation_bal_acc": b.get("variation_bal_acc"),
+                     "test_real_variation_bal_acc": b.get("real_variation_bal_acc"), "command_acc": b.get("command_acc"),
                      "oos_false_accept": b.get("oos_false_accept")})
     return pd.DataFrame(rows, columns=COLS)
 

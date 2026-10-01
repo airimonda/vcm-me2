@@ -138,10 +138,13 @@ def compute_metrics(meta: pd.DataFrame, cmd_prob, slot_prob, tau: float = 0.0, d
     var = meta["variation_idx"].to_numpy()
     oos = tc == OOS_IDX
     has_var = var >= 0                                    # excludes "other slot value" rows
+    real = meta["is_synthetic"].astype(int).to_numpy() == 0
 
     out = {
         "tau": tau, "n": int(len(meta)), "n_oos": int(oos.sum()),
         "variation_bal_acc": _bal_recall(var[has_var], ok[has_var], N_EVAL_GROUPS),
+        # same metric on real (non-synthetic) voices only; groups with no real clip are skipped
+        "real_variation_bal_acc": _bal_recall(var[has_var & real], ok[has_var & real], N_EVAL_GROUPS),
         "accuracy": float(ok[has_var].mean()),
         "command_acc": float(cmd_ok.mean()),
         "command_bal_acc": _bal_recall(tc, cmd_ok, N_CMD),

@@ -4,7 +4,8 @@
     python -m vcm.train --out exp/bc_resnet_S_s0 --resume
 
 Each epoch: train, score on the test split, log one JSON line, save last.pt (full resume
-state) and best.pt (best test variation balanced accuracy). Early stopping: see early_stop.py.
+state) and best.pt (best test selection score: (1-w) * variation balanced accuracy
++ w * the same on real voices only, w = select_real_weight). Early stopping: see early_stop.py.
 The final model is best.pt, not the last epoch.
 """
 from __future__ import annotations
@@ -221,23 +222,28 @@ def main(argv=None):
         m = score_test(model, test_dl, device, cfg["eval_tau"], test_ds.meta)
         dt = time.time() - t0
         times.append(dt)
-        score = m["variation_bal_acc"]
+        # selection score: mix of all-clips and real-voice variation balanced accuracy
+        w = cfg.get("select_real_weight", 0.0)
+        score = (1 - w) * m["variation_bal_acc"] + w * m["real_variation_bal_acc"]
         row = {"epoch": epoch, "train_loss": tot / nb, "train_loss_cmd": tot_c / nb, "train_loss_slot": tot_s / nb,
-               "test_variation_bal_acc": score, "test_command_acc": m["command_acc"],
+               "test_select_score": score, "test_variation_bal_acc": m["variation_bal_acc"],
+               "test_real_variation_bal_acc": m["real_variation_bal_acc"], "test_command_acc": m["command_acc"],
                "test_slot_acc": m["slot_acc"], "test_oos_false_accept": m["oos_false_accept"],
                "test_in_scope_false_reject": m["in_scope_false_reject"], "lr": opt.param_groups[0]["lr"],
                "time_s": dt}
         stopped = stopper.update(row["train_loss"], score)
         if stopper.best_epoch == epoch:
-            best_metrics = {k: m[k] for k in ("variation_bal_acc", "command_acc", "slot_acc", "oos_false_accept",
+            best_metrics = {k: m[k] for k in ("variation_bal_acc", "real_variation_bal_acc", "command_acc", "slot_acc", "oos_false_accept",
                                               "in_scope_false_reject", "command_bal_acc")}
             best_metrics["epoch"] = epoch
+            best_metrics["select_score"] = score
             torch.save({"arch": cfg["arch"], "tier": cfg["tier"], "model": model.state_dict(), "epoch": epoch,
                         "score": score, "cfg": cfg, "params": n_params}, best_path)
         row["is_best"] = stopper.best_epoch == epoch
         log_f.write(json.dumps(row) + "\n")
         log_f.flush()
-        print(f"ep {epoch:3d} loss {row['train_loss']:.4f} test var-bal-acc {score:.4f} cmd {m['command_acc']:.4f} "
+        print(f"ep {epoch:3d} loss {row['train_loss']:.4f} test select {score:.4f} var-bal-acc {m['variation_bal_acc']:.4f} "
+              f"real {m['real_variation_bal_acc']:.4f} cmd {m['command_acc']:.4f} "
               f"slot {m['slot_acc']:.4f} oosFA {m['oos_false_accept']:.3f} {dt:.1f}s"
               f"{' *' if row['is_best'] else ''}", flush=True)
         torch.save({"cfg": cfg, "model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
