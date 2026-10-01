@@ -34,9 +34,11 @@ class PackedSplit(Dataset):
     def __getitem__(self, i):
         return torch.from_numpy(np.array(self.audio[self.idx[i]])), self.labels[i]
 
-    def sample_weights(self, real_weight: float = 3.0) -> torch.Tensor:
-        """Real voices (is_synthetic == 0) are drawn `real_weight` times as often."""
+    def sample_weights(self, real_weight: float = 3.0, oos_weight: float = 1.0) -> torch.Tensor:
+        """Real voices (is_synthetic == 0) are drawn `real_weight` times as often,
+        out-of-scope clips `oos_weight` times as often."""
         w = np.where(self.meta["is_synthetic"].to_numpy() == 0, real_weight, 1.0)
+        w = w * np.where(self.meta["command"].to_numpy() == "OUT_OF_SCOPE", oos_weight, 1.0)
         return torch.from_numpy(w).double()
 
 

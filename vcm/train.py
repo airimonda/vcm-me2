@@ -149,7 +149,7 @@ def main(argv=None):
 
     train_ds = PackedSplit(cfg["pack_dir"], "train", cfg["max_train_clips"], seed=cfg["seed"])
     test_ds = PackedSplit(cfg["pack_dir"], "test", cfg["max_test_clips"], seed=0)
-    sampler = EpochSampler(train_ds.sample_weights(cfg["real_weight"]), len(train_ds), cfg["seed"])
+    sampler = EpochSampler(train_ds.sample_weights(cfg["real_weight"], cfg.get("oos_weight", 1.0)), len(train_ds), cfg["seed"])
     nw = cfg["num_workers"]
     train_dl = DataLoader(train_ds, batch_size=cfg["batch_size"], sampler=sampler, num_workers=nw,
                           drop_last=True, persistent_workers=nw > 0)
