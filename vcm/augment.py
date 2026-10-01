@@ -26,7 +26,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torchaudio.functional as AF
 
 SR = 16000
 OUT_LEN = 80000
@@ -126,6 +125,32 @@ def _lerp_read(x, pos):
     return y * valid
 
 
+def phase_vocoder(spec: torch.Tensor, rate: float, phase_advance: torch.Tensor) -> torch.Tensor:
+    """Time-stretch a complex STFT (..., freq, time) by `rate` without changing pitch.
+    Same algorithm as torchaudio.functional.phase_vocoder (kept local to avoid the torchaudio
+    dependency, whose CUDA build must match torch's exactly)."""
+    if rate == 1.0:
+        return spec
+    shape = spec.shape
+    spec = spec.reshape(-1, shape[-2], shape[-1])
+    steps = torch.arange(0, spec.size(-1), rate, device=spec.device, dtype=phase_advance.dtype)
+    alphas = steps % 1.0
+    phase_0 = spec[..., :1].angle()
+    spec = torch.nn.functional.pad(spec, [0, 2])
+    s0 = spec.index_select(-1, steps.long())
+    s1 = spec.index_select(-1, (steps + 1).long())
+    ang0, ang1 = s0.angle(), s1.angle()
+    norm0, norm1 = s0.abs(), s1.abs()
+    phase = ang1 - ang0 - phase_advance
+    phase = phase - 2 * math.pi * torch.round(phase / (2 * math.pi))
+    phase = phase + phase_advance
+    phase = torch.cat([phase_0, phase[..., :-1]], dim=-1)
+    phase_acc = torch.cumsum(phase, -1)
+    mag = alphas * norm1 + (1 - alphas) * norm0
+    out = torch.polar(mag, phase_acc)
+    return out.reshape(shape[:-2] + out.shape[-2:])
+
+
 def pitch_shift(x: torch.Tensor, semitones: torch.Tensor, n_fft=512, hop=128) -> torch.Tensor:
     """Pitch shift by phase-vocoder time stretch + resample. x (n,N), semitones (n,). Same length."""
     out = torch.empty_like(x)
@@ -138,7 +163,7 @@ def pitch_shift(x: torch.Tensor, semitones: torch.Tensor, n_fft=512, hop=128) ->
         N = xs.shape[1]
         spec = torch.stft(xs, n_fft, hop, window=win, return_complex=True)
         adv = torch.linspace(0, math.pi * hop, spec.shape[-2], device=x.device)[..., None]
-        spec = AF.phase_vocoder(spec, 1.0 / r, adv)
+        spec = phase_vocoder(spec, 1.0 / r, adv)
         y = torch.istft(spec, n_fft, hop, window=win)
         pos = torch.arange(N, device=x.device, dtype=torch.float32)[None].expand(len(idx), N) * r
         out[idx] = _lerp_read(y, pos)

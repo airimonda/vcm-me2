@@ -29,6 +29,5 @@ six==1.17.0
 soundfile==0.14.0
 sympy==1.14.0
 torch==2.14.1
-torchaudio==2.11.0
 tqdm==4.70.1
 typing-extensions==4.16.0
