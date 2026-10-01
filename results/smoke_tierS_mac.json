@@ -1,0 +1,59 @@
+{
+  "ds_cnn": {
+    "params": 97062,
+    "epoch_time_s": 6.877378940582275,
+    "device": "mps",
+    "torch_eval_var_bal_acc": 0.03260869565217391,
+    "onnx_parity": 3.5390257835388184e-08,
+    "onnx_eval_var_bal_acc": 0.03260869565217391,
+    "status": "ok"
+  },
+  "bc_resnet": {
+    "params": 93750,
+    "epoch_time_s": 5.449135065078735,
+    "device": "mps",
+    "torch_eval_var_bal_acc": 0.03260869565217391,
+    "onnx_parity": 3.725290298461914e-08,
+    "onnx_eval_var_bal_acc": 0.03260869565217391,
+    "int8_eval_var_bal_acc": 0.03260869565217391,
+    "int8_mb": 0.932996,
+    "fp32_mb": 1.089821,
+    "status": "ok"
+  },
+  "tc_resnet": {
+    "params": 106085,
+    "epoch_time_s": 7.129974126815796,
+    "device": "mps",
+    "torch_eval_var_bal_acc": 0.03260869565217391,
+    "onnx_parity": 8.940696716308594e-08,
+    "onnx_eval_var_bal_acc": 0.03260869565217391,
+    "status": "ok"
+  },
+  "matchbox": {
+    "params": 98878,
+    "epoch_time_s": 4.924758195877075,
+    "device": "mps",
+    "torch_eval_var_bal_acc": 0.029891304347826088,
+    "onnx_parity": 5.960464477539063e-08,
+    "onnx_eval_var_bal_acc": 0.029891304347826088,
+    "status": "ok"
+  },
+  "crnn": {
+    "params": 104522,
+    "epoch_time_s": 6.106107950210571,
+    "device": "mps",
+    "torch_eval_var_bal_acc": 0.03260869565217391,
+    "onnx_parity": 1.4156103134155273e-07,
+    "onnx_eval_var_bal_acc": 0.03260869565217391,
+    "status": "ok"
+  },
+  "conformer": {
+    "params": 106830,
+    "epoch_time_s": 6.0110557079315186,
+    "device": "mps",
+    "torch_eval_var_bal_acc": 0.029347826086956522,
+    "onnx_parity": 3.3974647521972656e-06,
+    "onnx_eval_var_bal_acc": 0.029347826086956522,
+    "status": "ok"
+  }
+}

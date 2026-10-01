@@ -180,7 +180,7 @@ def compute_metrics(meta: pd.DataFrame, cmd_prob, slot_prob, tau: float = 0.0, d
     return out
 
 
-def tau_sweep(meta, cmd_prob, slot_prob, taus=None):
+def tau_sweep(meta, cmd_prob, slot_prob, taus=None, max_oos_fa=None):
     taus = np.round(np.concatenate([np.arange(0, 0.9, 0.05), np.arange(0.9, 1.0, 0.01)]), 2) if taus is None else taus
     rows = []
     for t in taus:
@@ -188,7 +188,10 @@ def tau_sweep(meta, cmd_prob, slot_prob, taus=None):
         rows.append({k: m[k] for k in ("tau", "variation_bal_acc", "command_acc", "oos_false_accept",
                                        "in_scope_false_reject")})
     df = pd.DataFrame(rows)
-    best = df.sort_values(["variation_bal_acc", "oos_false_accept"], ascending=[False, True]).iloc[0]
+    cand = df if max_oos_fa is None else df[df["oos_false_accept"] <= max_oos_fa]
+    if len(cand) == 0:
+        cand = df
+    best = cand.sort_values(["variation_bal_acc", "oos_false_accept"], ascending=[False, True]).iloc[0]
     return df, float(best["tau"])
 
 
@@ -222,12 +225,12 @@ def predictions_frame(meta, cmd_prob, slot_prob, tau):
 
 
 def evaluate_model(model_path, pack_dir, split="test", tau=0.0, max_clips=None, out_dir=None, device="cpu",
-                   sweep=False, batch_size=32, progress=True):
+                   sweep=False, batch_size=32, progress=True, max_oos_fa=None):
     ds = PackedSplit(pack_dir, split, max_clips=max_clips)
     predict = make_predictor(model_path, device)
     cp, sp = predict_split(predict, ds, batch_size, progress)
     if sweep:
-        sw, best_tau = tau_sweep(ds.meta, cp, sp)
+        sw, best_tau = tau_sweep(ds.meta, cp, sp, max_oos_fa=max_oos_fa)
         tau = best_tau
     m = compute_metrics(ds.meta, cp, sp, tau)
     m["model"] = str(model_path)
@@ -253,11 +256,13 @@ def main():
     ap.add_argument("--split", default="test", choices=["train", "test", "holdout"])
     ap.add_argument("--tau", type=float, default=0.0)
     ap.add_argument("--sweep-tau", action="store_true", help="sweep tau on this split and use the best")
+    ap.add_argument("--max-oos-fa", type=float, default=None,
+                    help="with --sweep-tau: only consider taus whose OOS false-accept rate is <= this")
     ap.add_argument("--max-clips", type=int, default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--device", default="cpu")
     a = ap.parse_args()
-    m = evaluate_model(a.model, a.pack, a.split, a.tau, a.max_clips, a.out, a.device, a.sweep_tau)
+    m = evaluate_model(a.model, a.pack, a.split, a.tau, a.max_clips, a.out, a.device, a.sweep_tau, max_oos_fa=a.max_oos_fa)
     print(json.dumps({k: v for k, v in m.items() if not k.startswith("by_")}, indent=2))
 
 
