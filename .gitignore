@@ -14,3 +14,4 @@ __pycache__/
 # released models (final ensemble, single model, baseline checkpoint)
 !models/*.onnx
 !models/ckpt/*.pt
+!models/wake/*.onnx

@@ -1,0 +1,31 @@
+{
+ "threshold": 0.55,
+ "calibration_watson_clips": 0,
+ "missing_clips": {
+  "dev": 2622,
+  "train": 22226
+ },
+ "calibration_clips": 300,
+ "fp32_mb": 0.822,
+ "int8_mb": 0.778,
+ "dev": {
+  "n_watson": 0,
+  "n_other": 1500,
+  "fp32_recall": null,
+  "int8_recall": null,
+  "fp32_false_wake": 0.005333333333333333,
+  "int8_false_wake": 0.005333333333333333,
+  "decisions_changed": 0,
+  "max_abs_prob_diff": 0.07475459575653076
+ },
+ "own": {
+  "n_watson": 40,
+  "n_other": 261,
+  "fp32_recall": 1.0,
+  "int8_recall": 1.0,
+  "fp32_false_wake": 0.022988505747126436,
+  "int8_false_wake": 0.019157088122605363,
+  "decisions_changed": 1,
+  "max_abs_prob_diff": 0.07400864362716675
+ }
+}
