@@ -22,3 +22,4 @@ replies/
 runtime/sounds/
 config/spotify.json
 logs/
+.venv-piper/
