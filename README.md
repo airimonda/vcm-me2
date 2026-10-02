@@ -60,6 +60,10 @@ Dataset: [`airimonda/ai231-me2-voice-commands`](https://huggingface.co/datasets/
 | `models/ckpt/conformer_M_s{0,1,2}.pt` | PyTorch checkpoints of the three ensemble members |
 | `models/ckpt/ds_cnn_M_s0_baseline.pt` | DS-CNN M baseline checkpoint (same recipe) |
 | `results/` | bake-off tables, run summaries and logs, tau reports, per-clip predictions and metrics of every test scoring |
+| `models/wake/vcm_wake_v2.onnx` + `.labels.json` | **wake word "Watson", deployed** (DS-CNN, 25,730 params, fp32; threshold 0.70; added after `v1.0`) |
+| `models/wake/vcm_wake.onnx`, `vcm_wake_int8.onnx` | the earlier wake model (threshold 0.55), kept for comparison |
+| `results/wake/` | wake v2 training log, tune report and comparison with the earlier model |
+| `results/pi_holdout/` | the two live holdout runs on the Pi (report, metrics, per-trial CSV) |
 
 ## Quick start (onnxruntime)
 
@@ -241,6 +245,29 @@ Use `TAG=_tune EXTRA="--select-split tune" scripts/bakeoff.sh` for tune-selected
 Runs go to `exp/<arch>_<tier>_s<seed>/`, finished runs are skipped, unfinished ones resume,
 and `results/bakeoff.csv` is written at the end. `scripts/smoke.py` is the quick all-architecture
 check (500 clips, 1 epoch, export, ONNX eval, int8; evaluates on train clips, never on test).
+
+## On the Raspberry Pi
+
+```
+scripts/sync_to_pi.sh --no-secrets                      # Mac -> Pi (code, models, config; never logs/ or data/)
+systemctl --user restart vcm-me2                        # on the Pi: wake word -> command model -> actions
+.venv/bin/python scripts/pi_runtime.py --inject         # on the Pi, by hand: also accept test audio on /inject
+```
+
+Runtime, Spotify and dashboard: `docs/runtime.md`. Wake word (recorder, Piper set, training, threshold):
+`docs/wake.md`:
+
+```
+.venv/bin/python scripts/record_wake.py --session mac1                  # record "Watson" + look-alikes
+.venv-piper/bin/python scripts/gen_piper.py --templates wake --out data/wake/piper --manifest data/wake/piper.csv
+.venv/bin/python scripts/build_wake_set.py                              # data/wake/train.npz, tune.npz
+python scripts/train_wake.py --arch ds_cnn --width 64 --out exp/wake/ds_cnn_64   # GPU box
+python scripts/eval_wake.py --models exp/wake/ds_cnn_64/wake.onnx --at 0.70
+```
+
+Live holdout test: the class benchmark ([vcm-benchmark](https://github.com/airimonda/vcm-benchmark)) plays or
+injects each holdout command after a recorded "Watson" and scores the runtime's `logs/live.log`; see
+`docs/paper.md` Section 8.x for the protocol and both runs.
 
 ## Licence
 
