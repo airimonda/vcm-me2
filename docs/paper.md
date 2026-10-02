@@ -8,7 +8,7 @@
 
 We describe a small voice command model that maps one 5-second window of 16 kHz audio to one of 19 smart-device commands or an `OUT_OF_SCOPE` class, and, for six commands, to one of three slot values (for example a timer length or a colour). The model is trained from random initialisation on a speaker-disjoint dataset of 10,733 training clips, about 78% of them synthetic speech. It contains no pretrained weights, no speech recogniser, no language model and no network call. The log-mel front end is part of the exported ONNX graph, so inference needs only `onnxruntime` and `numpy`.
 
-Six small architectures were compared at about 100k and about 300k parameters under one shared recipe. A four-layer conformer-style network (294,246 parameters) was the best on mean selection score and had the smallest spread across three seeds. The released model is an ensemble of three such networks that share one front end (882,738 parameters; 4.46 MB as fp32 ONNX, 2.78 MB as int8). On a speaker-disjoint test split of 4,443 clips the ensemble reaches a variation balanced accuracy of 0.9431 (93 phrase variations plus the out-of-scope group) with a reject threshold of 0.40. The same recipe with a depthwise-separable CNN of similar size reaches 0.8610. The weak points are measured and reported: accuracy on real (non-synthetic) voices is 0.7727 on the same metric, 7 of 76 out-of-scope test clips (9.2%) are accepted as commands, and 20% of synthetic babble clips and 10% of truncated-command clips are accepted. Latency on a Raspberry Pi is not yet measured and is left as a marked placeholder.
+Six small architectures were compared at about 100k and about 300k parameters under one shared recipe. A four-layer conformer-style network (294,246 parameters) was the best on mean selection score and had the smallest spread across three seeds. The released model is an ensemble of three such networks that share one front end (882,738 parameters; 4.46 MB as fp32 ONNX, 2.78 MB as int8). On a speaker-disjoint test split of 4,443 clips the ensemble reaches a variation balanced accuracy of 0.9431 (93 phrase variations plus the out-of-scope group) with a reject threshold of 0.40. The same recipe with a depthwise-separable CNN of similar size reaches 0.8610. The weak points are measured and reported: accuracy on real (non-synthetic) voices is 0.7727 on the same metric, 7 of 76 out-of-scope test clips (9.2%) are accepted as commands, and 20% of synthetic babble clips and 10% of truncated-command clips are accepted. On a Raspberry Pi 4 the ensemble runs one 5-s window in 89 ms on one core (real-time factor 0.018); int8 gives no speed-up there, so fp32 is deployed.
 
 ---
 
@@ -33,7 +33,7 @@ We treat this as a classification problem rather than a transcription problem. G
 3. Ablations of the misfire regularisation, its weight and the augmentation preset, all selected on a speaker-disjoint *tune* split rather than on the test split (Section 7c).
 4. A strict account of which split was used for which decision, including two places where the test split was looked at more than the ideal protocol allows (Section 6).
 
-**What this paper does not claim.** No latency or throughput on a Raspberry Pi has been measured yet (Section 8). The live test on the reserved holdout split has not been run. Real-voice accuracy is substantially lower than accuracy on synthetic voices (Section 9).
+**What this paper does not claim.** Pi latency was measured on a Raspberry Pi 4 only, with a synthetic input, not inside the full live pipeline (Section 8). The live test on the reserved holdout split has not been run. Real-voice accuracy is substantially lower than accuracy on synthetic voices (Section 9).
 
 ---
 
@@ -592,20 +592,26 @@ The ensemble is 2.3 times the size of the single model in fp32 and 2.0 times in 
 | Conformer M seed 2 | `models/ckpt/conformer_M_s2.pt` | 1,222,621 |
 | DS-CNN M seed 0 | `models/ckpt/ds_cnn_M_s0_baseline.pt` | 1,276,001 |
 
-**Raspberry Pi latency: NOT YET MEASURED.** No latency, throughput, memory or power number has been measured on a Raspberry Pi. The table below is a placeholder and must be filled from real measurements before any real-time claim is made. The measurement protocol should state the board, OS, `onnxruntime` version, thread count, input length (80,000 samples), warm-up runs, number of timed runs and whether the front end is included (it is, in the ONNX graph).
+**Raspberry Pi latency (measured 2026-10-02).** Board: Raspberry Pi 4 Model B (Rev 1.1, 4 GB), 64-bit Raspberry Pi OS, onnxruntime 1.30.0 (CPUExecutionProvider), `intra_op_num_threads` as listed, `inter_op_num_threads` 1, `session.intra_op.allow_spinning` = 0, full graph optimisation. One inference is one 5-s window (1 × 80,000 samples) including the log-mel front end; 20 warm-up runs, then 200 timed runs. The Pi's own voice-assistant service was stopped during the run; CPU temperature stayed between 48.7 and 57.4 °C (no throttling). Script: `scripts/bench_onnx.py`; raw numbers: `results/bench_pi4.json`. RTF = median latency / 5 s. Peak RSS is the whole Python process (interpreter, numpy, onnxruntime and the session), cumulative across the runs in one process, so later rows include earlier sessions.
 
-**Table 19.** Raspberry Pi latency (PLACEHOLDER, values to be measured).
+**Table 19.** Raspberry Pi 4 latency per 5-s window.
 
-| Model | Board | Threads | Median latency per 5-s window | 95th percentile | Peak memory | Notes |
-| --- | --- | ---: | --- | --- | --- | --- |
-| Single fp32 | Pi 4 | TBD | TBD | TBD | TBD | |
-| Single int8 | Pi 4 | TBD | TBD | TBD | TBD | |
-| Ensemble fp32 | Pi 4 | TBD | TBD | TBD | TBD | |
-| Ensemble int8 | Pi 4 | TBD | TBD | TBD | TBD | |
-| Single fp32 | Pi 5 | TBD | TBD | TBD | TBD | |
-| Single int8 | Pi 5 | TBD | TBD | TBD | TBD | |
-| Ensemble fp32 | Pi 5 | TBD | TBD | TBD | TBD | |
-| Ensemble int8 | Pi 5 | TBD | TBD | TBD | TBD | |
+| Model | Size (MB) | Threads | Median (ms) | p95 (ms) | RTF | Peak RSS (MB) |
+|---|---|---|---|---|---|---|
+| Single fp32 | 1.94 | 1 | 47.0 | 50.2 | 0.0094 | 72.6 |
+| Single fp32 | 1.94 | 2 | 28.9 | 38.0 | 0.0058 | 73.5 |
+| Single fp32 | 1.94 | 4 | 19.6 | 20.2 | 0.0039 | 73.8 |
+| Single int8 | 1.36 | 1 | 46.2 | 46.6 | 0.0092 | 76.6 |
+| Single int8 | 1.36 | 2 | 29.4 | 29.7 | 0.0059 | 79.6 |
+| Single int8 | 1.36 | 4 | 22.4 | 23.4 | 0.0045 | 79.9 |
+| Ensemble fp32 (released) | 4.46 | 1 | 88.9 | 91.0 | 0.0178 | 83.5 |
+| Ensemble fp32 (released) | 4.46 | 2 | 55.6 | 56.0 | 0.0111 | 87.5 |
+| Ensemble fp32 (released) | 4.46 | 4 | 41.8 | 48.4 | 0.0084 | 87.5 |
+| Ensemble int8 | 2.78 | 1 | 87.6 | 88.2 | 0.0175 | 92.5 |
+| Ensemble int8 | 2.78 | 2 | 61.2 | 61.7 | 0.0122 | 92.6 |
+| Ensemble int8 | 2.78 | 4 | 49.4 | 59.9 | 0.0099 | 92.7 |
+
+All four variants run far faster than real time: the released ensemble needs 89 ms per 5-s window on one core (RTF 0.018) and 56 ms on two. int8 quantisation gives **no speed-up** on the Pi 4 (the log-mel front end stays fp32 and the quantize/dequantize pairs add work), and it costs the ensemble accuracy (Section 7e), so the fp32 ensemble is the deployed model. A Pi 5 was not measured.
 
 ---
 
@@ -619,7 +625,7 @@ The ensemble is 2.3 times the size of the single model in fp32 and 2.0 times in 
 6. **Quantisation cost.** int8 costs the ensemble about 0.3 points of variation balanced accuracy, 0.9 points of real-voice score and 1.3 points of out-of-scope false accept (Table 12), and the ensemble difference is detectable in the sign test (p = 0.016).
 7. **Fixed-window, offline preprocessing.** The model takes exactly 5 s. Evaluation clips were speech-trimmed and centred in the window by `pack_data.py`; that endpointing step is not part of the model, and the behaviour on untrimmed, streaming microphone input is unmeasured.
 8. **Wake word not yet retrained.** There is no wake-word stage. A wake word detector, if used, has not yet been retrained for this pipeline.
-9. **Pi latency pending.** The real-time requirement on Raspberry Pi 4/5 is not demonstrated (Section 8).
+9. **Latency measured in isolation.** Model latency on a Pi 4 is far below real time (Section 8), but end-to-end latency of the live pipeline (wake word, endpointing, actuation) and a Pi 5 have not been measured.
 10. **Single DS-CNN seed, single-seed ablations.** The baseline comparison and the ablations in Section 7c rest on one seed each; only the final recipe has three seeds.
 11. **Live test not run.** The holdout split (202 clips) has not been used.
 

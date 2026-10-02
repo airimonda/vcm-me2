@@ -31,7 +31,7 @@ tau = 0.40, scored with `--final-test` on the speaker-disjoint **test** split (4
 
 Single model (294,246 parameters): 0.9354 / 0.7738 real-voice / OOS false accept 0.1711. DS-CNN M baseline with the
 same recipe: 0.8610. int8 ensemble: 0.9400. The real-voice gap, the test-split handling and other limits are in the
-paper. Raspberry Pi latency is **not yet measured**.
+paper. On a Raspberry Pi 4 the fp32 ensemble takes 89 ms per 5-s window on one core (56 ms on two); int8 is not faster there (`results/bench_pi4.json`).
 
 ## Documentation
 
