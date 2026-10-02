@@ -1,0 +1,2 @@
+conformer M 1
+conformer M 2

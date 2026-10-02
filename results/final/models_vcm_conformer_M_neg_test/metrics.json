@@ -1,0 +1,65 @@
+{
+  "tau": 0.4,
+  "n": 250,
+  "n_oos": 250,
+  "variation_bal_acc": 0.924,
+  "real_variation_bal_acc": NaN,
+  "accuracy": 0.924,
+  "command_acc": 0.924,
+  "command_bal_acc": 0.924,
+  "oos_false_accept": 0.076,
+  "in_scope_false_reject": NaN,
+  "slot_acc": NaN,
+  "slot_head_acc": {},
+  "accuracy_ci95": [
+    0.8843577467284998,
+    0.9508087508038197
+  ],
+  "by_accent_group": {
+    "Synthetic": {
+      "n": 250,
+      "accuracy": 0.924,
+      "ci95": [
+        0.8843577467284998,
+        0.9508087508038197
+      ],
+      "command_acc": 0.924
+    }
+  },
+  "by_is_synthetic": {
+    "1": {
+      "n": 250,
+      "accuracy": 0.924,
+      "ci95": [
+        0.8843577467284998,
+        0.9508087508038197
+      ],
+      "command_acc": 0.924
+    }
+  },
+  "model": "models/vcm_conformer_M.onnx",
+  "split": "neg_test",
+  "misfire_rate": 0.076,
+  "by_neg_kind": {
+    "babble": {
+      "n": 50,
+      "misfire_rate": 0.2
+    },
+    "near_silence": {
+      "n": 50,
+      "misfire_rate": 0.0
+    },
+    "noise_only": {
+      "n": 50,
+      "misfire_rate": 0.06
+    },
+    "reversed": {
+      "n": 50,
+      "misfire_rate": 0.0
+    },
+    "truncated": {
+      "n": 50,
+      "misfire_rate": 0.12
+    }
+  }
+}

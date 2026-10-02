@@ -1,0 +1,9 @@
+crnn M 0
+conformer M 0
+matchbox M 0
+crnn M 1
+conformer M 1
+matchbox M 1
+crnn M 2
+conformer M 2
+matchbox M 2
