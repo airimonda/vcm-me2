@@ -5,3 +5,4 @@ tier: S
 misfire_weight: 0.0      # >0: extra loss on probability mass that true-OOS clips put on any command
 use_negatives: false     # true: add synthetic negatives (neg_train pack) to the training set
 negatives_weight: 1.0    # sampling weight of the negatives
+select_split: test       # keep `test` so reruns match earlier numbers; pass --select-split tune for new choices (test is for the final report only)

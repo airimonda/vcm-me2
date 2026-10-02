@@ -94,12 +94,13 @@ def test_eval_neg_test_and_tau_table(fake_packs, tmp_path):
     out = tmp_path / "run"
     T.main(["--arch", "tc_resnet", "--tier", "S", "--epochs", "1", "--batch-size", "4", "--device", "cpu",
             "--aug", "none", "--pack-dir", str(fake_packs), "--out", str(out)])
-    m = evaluate_model(out / "best.pt", fake_packs, "neg_test", progress=False, out_dir=tmp_path / "ev")
+    m = evaluate_model(out / "best.pt", fake_packs, "neg_test", progress=False, out_dir=tmp_path / "ev", final_test=True)
     assert m["n"] == 10 and 0.0 <= m["misfire_rate"] <= 1.0
     assert set(m["by_neg_kind"]) == {"noise_only", "babble", "reversed", "truncated", "near_silence"}
     assert abs(m["misfire_rate"] - m["oos_false_accept"]) < 1e-9          # every neg clip is OOS
     assert "neg_kind" in open(tmp_path / "ev" / "predictions.csv").readline()
-    m = evaluate_model(out / "best.pt", fake_packs, "test", progress=False, tau_table=True, out_dir=tmp_path / "ev2")
+    m = evaluate_model(out / "best.pt", fake_packs, "test", progress=False, tau_table=True, out_dir=tmp_path / "ev2",
+                       final_test=True)
     tab = m["tau_table"]
     assert {"tau", "variation_bal_acc", "oos_false_accept", "neg_misfire", "in_scope_false_reject"} <= set(tab[0])
     assert tab[0]["tau"] == 0.0 and tab[-1]["tau"] > 0.9

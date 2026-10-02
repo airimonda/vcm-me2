@@ -14,14 +14,17 @@ WINDOW = 80_000
 
 class PackedSplit(Dataset):
     """Item: (int16 waveform tensor (L,), labels int64 (4,)). L is 96000 for train, 80000 else.
-    max_clips takes a seeded random subset (used for smoke runs)."""
+    max_clips takes a seeded random subset (used for smoke runs).
+    indices restricts the split to those row positions of the pack (the tune subset of train / neg_train);
+    max_clips is then drawn from that subset. Without indices nothing changes."""
 
-    def __init__(self, pack_dir: str | Path, split: str, max_clips: int | None = None, seed: int = 0):
+    def __init__(self, pack_dir: str | Path, split: str, max_clips: int | None = None, seed: int = 0,
+                 indices=None):
         pack_dir = Path(pack_dir)
         self.split = split
         self.audio = np.load(pack_dir / f"{split}_audio.npy", mmap_mode="r")
         meta = pd.read_parquet(pack_dir / f"{split}_meta.parquet")
-        idx = np.arange(len(meta))
+        idx = np.arange(len(meta)) if indices is None else np.sort(np.asarray(indices, dtype=np.int64))
         if max_clips is not None and max_clips < len(idx):
             idx = np.sort(np.random.RandomState(seed).choice(idx, max_clips, replace=False))
         self.idx = idx
@@ -40,6 +43,15 @@ class PackedSplit(Dataset):
         w = np.where(self.meta["is_synthetic"].to_numpy() == 0, real_weight, 1.0)
         w = w * np.where(self.meta["command"].to_numpy() == "OUT_OF_SCOPE", oos_weight, 1.0)
         return torch.from_numpy(w).double()
+
+
+def load_tune_split(path: str | Path) -> dict:
+    """tune_split.json written by scripts/make_tune_split.py (row positions in the train / neg_train packs)."""
+    import json
+    d = json.loads(Path(path).read_text())
+    for k in ("tune_train_idx", "train_idx", "neg_tune_idx", "neg_train_idx"):
+        d[k] = np.asarray(d[k], dtype=np.int64)
+    return d
 
 
 def center_window(wav: torch.Tensor, n: int = WINDOW) -> torch.Tensor:

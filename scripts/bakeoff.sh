@@ -3,6 +3,7 @@
 #  - finished runs (exp/<run>/summary.json exists) are skipped
 #  - unfinished runs (last.pt exists) are resumed
 # Then writes results/bakeoff.csv.
+#   TAG=_tune EXTRA="--select-split tune" scripts/bakeoff.sh   # tune-split runs (the default select_split is test)
 #
 #   scripts/bakeoff.sh                          # round 1: all 6 archs, tier S, seed 0
 #   scripts/bakeoff.sh runs.txt                 # file with lines "arch tier seed" (# comments ok)

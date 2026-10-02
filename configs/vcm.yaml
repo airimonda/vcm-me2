@@ -21,6 +21,10 @@ eval_tau: 0.0            # reject threshold used for the per-epoch test log (0 =
 misfire_weight: 0.0      # >0: add w * mean(1 - softmax(cmd)[OOS]) over true-OOS rows (non-command audio -> OOS); 0 = off
 use_negatives: false     # true: also train on data/packs/neg_train (synthetic negatives, scripts/make_negatives.py)
 negatives_weight: 1.0    # sampling weight of neg_train clips (x the normal synthetic weight of 1.0)
+select_split: test       # test | tune. Where per-epoch scoring, best.pt and early stopping look. `test` = old behaviour (kept so
+                         # earlier runs reproduce); `tune` = speaker-disjoint slice of TRAIN (scripts/make_tune_split.py), the gold
+                         # test pack is then never loaded. All new choices use `--select-split tune`.
+tune_split: null         # tune_split.json for select_split=tune; null = <pack_dir>/tune_split.json (data/packs/tune_split.json)
 early_stop:
   n: 3
   min_rel_impr: 0.02

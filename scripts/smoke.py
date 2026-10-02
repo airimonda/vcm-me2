@@ -36,16 +36,16 @@ def main():
                             "--max-test-clips", "300", "--aug", "heavy", "--out", str(out), "--device", a.device,
                             "--pack-dir", a.pack])
             r.update(params=s["params"], epoch_time_s=s["mean_epoch_time_s"], device=s["device"])
-            m_pt = evaluate_model(out / "best.pt", a.pack, "test", 0.0, 300, progress=False)
+            m_pt = evaluate_model(out / "best.pt", a.pack, "train", 0.0, 300, progress=False)
             r["torch_eval_var_bal_acc"] = m_pt["variation_bal_acc"]
             model, _ = load_ckpt(out / "best.pt")
             side = export_onnx(model, str(out / "model.onnx"), tau=0.0)
             r["onnx_parity"] = side["parity_max_abs_diff"]
-            m_ox = evaluate_model(out / "model.onnx", a.pack, "test", 0.0, 300, out_dir=out / "onnx_eval", progress=False)
+            m_ox = evaluate_model(out / "model.onnx", a.pack, "train", 0.0, 300, out_dir=out / "onnx_eval", progress=False)
             r["onnx_eval_var_bal_acc"] = m_ox["variation_bal_acc"]
             if arch == a.int8_arch:
                 quantize_int8(str(out / "model.onnx"), str(out / "model_int8.onnx"), a.pack)
-                m_q = evaluate_model(out / "model_int8.onnx", a.pack, "test", 0.0, 300, progress=False)
+                m_q = evaluate_model(out / "model_int8.onnx", a.pack, "train", 0.0, 300, progress=False)
                 r["int8_eval_var_bal_acc"] = m_q["variation_bal_acc"]
                 r["int8_mb"] = (out / "model_int8.onnx").stat().st_size / 1e6
                 r["fp32_mb"] = (out / "model.onnx").stat().st_size / 1e6

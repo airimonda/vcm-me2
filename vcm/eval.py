@@ -9,10 +9,15 @@ variations + the OOS group (94 groups).
 
     python -m vcm.eval --model exp/x/best.pt --pack data/packs --split test --tau 0.5 --out results/x
 
+`--split tune` / `--split neg_tune` score the tune subset of train / neg_train (speaker-disjoint from the rows used
+for training in `--select-split tune` runs; indices from tune_split.json, `--tune-split`, default <pack>/tune_split.json).
+All choices (checkpoint, tau, misfire weight, ablations) are made on tune. The gold test / holdout splits (and neg_test,
+which is built from test clips) are for the final report only and need `--final-test`.
+
 Synthetic negatives (scripts/make_negatives.py + pack_data.py --negatives): `--split neg_test` reports the
 misfire rate (fraction of clips NOT predicted OUT_OF_SCOPE) overall and per neg_kind.
-`--tau-table` prints, per tau: gold-test variation bal acc, gold OOS false-accept, neg_test misfire and
-in-scope false-reject (needs the gold split plus a neg_test pack).
+`--tau-table` prints, per tau: variation bal acc, OOS false-accept, negatives misfire and in-scope false-reject
+(split tune uses neg_tune; split test uses neg_test and needs --final-test).
 """
 from __future__ import annotations
 
@@ -25,7 +30,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from .data import PackedSplit, center_window, to_float
+from .data import PackedSplit, center_window, load_tune_split, to_float
 from .labels import (CLASSES, CMD_OF_SLOT_HEAD, JOINT_NAMES, N_CMD, N_EVAL_GROUPS, OOS_IDX, SLOT_COMMANDS,
                       SLOT_HEAD_OF_CMD, joint_class)
 
@@ -95,6 +100,31 @@ def predict_split(predict, ds: PackedSplit, batch_size: int = 32, progress: bool
         cp.append(_softmax(c))
         sp.append(_softmax(s))
     return np.concatenate(cp), np.concatenate(sp)
+
+
+# ------------------------------------------------------------------ splits
+FINAL_ONLY = ("test", "holdout", "neg_test")
+FINAL_MSG = "test/holdout are for the final report only: pass --final-test to score them (choices are made on --split tune)"
+
+
+def check_final(*splits, final_test: bool = False):
+    bad = [s for s in splits if s in FINAL_ONLY]
+    if bad and not final_test:
+        raise PermissionError(f"refusing to score {'/'.join(bad)}: {FINAL_MSG}")
+
+
+def open_split(pack_dir, split: str, max_clips=None, tune_split=None) -> PackedSplit:
+    """PackedSplit for a pack split, or for `tune` / `neg_tune` (subset of train / neg_train, tune_split.json)."""
+    if split in ("tune", "neg_tune"):
+        t = load_tune_split(tune_split or Path(pack_dir) / "tune_split.json")
+        if split == "tune":
+            return PackedSplit(pack_dir, "train", max_clips=max_clips, indices=t["tune_train_idx"])
+        return PackedSplit(pack_dir, "neg_train", max_clips=max_clips, indices=t["neg_tune_idx"])
+    return PackedSplit(pack_dir, split, max_clips=max_clips)
+
+
+def is_neg_split(split: str) -> bool:
+    return split.startswith("neg_")
 
 
 # ------------------------------------------------------------------ decisions & metrics
@@ -252,17 +282,27 @@ def predictions_frame(meta, cmd_prob, slot_prob, tau):
     return df
 
 
-def evaluate_model(model_path, pack_dir, split="test", tau=0.0, max_clips=None, out_dir=None, device="cpu",
+def evaluate_model(model_path, pack_dir, split="tune", tau=0.0, max_clips=None, out_dir=None, device="cpu",
                    sweep=False, batch_size=32, progress=True, max_oos_fa=None, tau_table=False,
-                   neg_split="neg_test"):
-    ds = PackedSplit(pack_dir, split, max_clips=max_clips)
+                   neg_split=None, tune_split=None, final_test=False):
+    if neg_split is None:                              # neg_tune next to tune, neg_test next to the gold splits
+        neg_split = "neg_tune" if split in ("tune", "train") else "neg_test"
+    check_final(split, neg_split if tau_table else None, final_test=final_test)
+    ds = open_split(pack_dir, split, max_clips, tune_split)
     predict = make_predictor(model_path, device)
     cp, sp = predict_split(predict, ds, batch_size, progress)
     ncp = None
     if tau_table:
-        if split.startswith("neg_"):
-            raise ValueError("--tau-table needs a gold split (e.g. test) as --split")
-        ncp, _ = predict_split(predict, PackedSplit(pack_dir, neg_split, max_clips=max_clips), batch_size, progress)
+        if is_neg_split(split):
+            raise ValueError("--tau-table needs a non-negatives split (e.g. tune) as --split")
+        try:
+            nds = open_split(pack_dir, neg_split, max_clips, tune_split)
+        except FileNotFoundError:                      # e.g. no neg_train pack on this machine
+            nds = []
+        if len(nds) == 0:
+            print(f"WARNING: {neg_split} has no clips; tau table without neg_misfire", flush=True)
+        else:
+            ncp, _ = predict_split(predict, nds, batch_size, progress)
     if sweep or tau_table:
         sw, best_tau = tau_sweep(ds.meta, cp, sp, max_oos_fa=max_oos_fa, neg_cmd_prob=ncp)
         if sweep:
@@ -270,7 +310,7 @@ def evaluate_model(model_path, pack_dir, split="test", tau=0.0, max_clips=None, 
     m = compute_metrics(ds.meta, cp, sp, tau)
     m["model"] = str(model_path)
     m["split"] = split
-    if split.startswith("neg_"):                       # synthetic negatives: every clip is OUT_OF_SCOPE
+    if is_neg_split(split):                            # synthetic negatives: every clip is OUT_OF_SCOPE
         ms = misfire_stats(ds.meta, cp, sp, tau)
         m["misfire_rate"] = ms["misfire_rate"]
         m["by_neg_kind"] = ms.get("by_neg_kind", {})
@@ -294,23 +334,32 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help=".pt or .onnx")
     ap.add_argument("--pack", default="data/packs")
-    ap.add_argument("--split", default="test", choices=["train", "test", "holdout", "neg_train", "neg_test"])
+    ap.add_argument("--split", default="tune",
+                    choices=["tune", "neg_tune", "train", "neg_train", "test", "holdout", "neg_test"])
+    ap.add_argument("--tune-split", default=None, help="tune_split.json (default <pack>/tune_split.json)")
+    ap.add_argument("--final-test", action="store_true",
+                    help="required to score the gold test / holdout (and neg_test) splits; final report only")
     ap.add_argument("--tau", type=float, default=0.0)
     ap.add_argument("--sweep-tau", action="store_true", help="sweep tau on this split and use the best")
     ap.add_argument("--tau-table", action="store_true",
-                    help="print a per-tau table: gold-split variation bal acc, gold OOS false-accept, neg_test misfire, "
-                         "in-scope false-reject (neg split from --neg-split); saved as tau_sweep.csv with --out")
-    ap.add_argument("--neg-split", default="neg_test", choices=["neg_train", "neg_test"])
+                    help="print a per-tau table: variation bal acc, OOS false-accept, negatives misfire, "
+                         "in-scope false-reject (negatives from --neg-split); saved as tau_sweep.csv with --out")
+    ap.add_argument("--neg-split", default=None, choices=["neg_tune", "neg_train", "neg_test"],
+                    help="default: neg_tune for --split tune, neg_test otherwise")
     ap.add_argument("--max-oos-fa", type=float, default=None,
                     help="with --sweep-tau: only consider taus whose OOS false-accept rate is <= this")
     ap.add_argument("--max-clips", type=int, default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--device", default="cpu")
     a = ap.parse_args()
-    m = evaluate_model(a.model, a.pack, a.split, a.tau, a.max_clips, a.out, a.device, a.sweep_tau, max_oos_fa=a.max_oos_fa,
-                       tau_table=a.tau_table, neg_split=a.neg_split)
+    try:
+        m = evaluate_model(a.model, a.pack, a.split, a.tau, a.max_clips, a.out, a.device, a.sweep_tau,
+                           max_oos_fa=a.max_oos_fa, tau_table=a.tau_table, neg_split=a.neg_split,
+                           tune_split=a.tune_split, final_test=a.final_test)
+    except PermissionError as e:                       # test / holdout without --final-test
+        raise SystemExit(str(e))
     table = m.pop("tau_table", None)
-    if a.split.startswith("neg_"):
+    if is_neg_split(a.split):
         print(f"misfire rate {m['misfire_rate']:.4f} on {m['n']} {a.split} clips (tau {m['tau']})")
         for k, v in m["by_neg_kind"].items():
             print(f"  {k:13s} n={v['n']:4d} misfire {v['misfire_rate']:.4f}")

@@ -147,7 +147,7 @@ def main():
     e.add_argument("--ckpt", required=True)
     e.add_argument("--out", required=True)
     e.add_argument("--tau", type=float, default=0.0)
-    e.add_argument("--pack", default=None, help="if given, parity is also checked on 8 real test clips")
+    e.add_argument("--pack", default=None, help="if given, parity is also checked on 8 real train clips")
     q = sub.add_parser("quantize")
     q.add_argument("--onnx", required=True)
     q.add_argument("--out", required=True)
@@ -158,8 +158,8 @@ def main():
         model, ck = load_ckpt(a.ckpt)
         real = None
         if a.pack:
-            ds = PackedSplit(a.pack, "test", 8)
-            real = to_float(torch.stack([ds[i][0] for i in range(len(ds))]))
+            ds = PackedSplit(a.pack, "train", 8)             # parity only: centre 5 s of 8 train clips (gold test not touched)
+            real = to_float(center_window(torch.stack([ds[i][0] for i in range(len(ds))])))
         side = export_onnx(model, a.out, a.tau, real)
         print(f"exported {a.out}  params={side['params']:,}  parity max|diff|={side['parity_max_abs_diff']:.2e}")
     else:

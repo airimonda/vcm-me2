@@ -13,9 +13,22 @@ The whole thing (log-mel front end included) exports to one ONNX file that runs 
 MatchboxNet, CRNN, tiny Conformer) at two sizes (tier S ~100k and tier M ~300k parameters)
 share the same front end, heads, data, augmentation and stopping rule so they can be compared.
 
-Splits are called **train**, **test** and **holdout**. Train fits the model; test picks the
-checkpoint, the reject threshold and the architecture; holdout is only for live testing and
-never selects anything. The `numerals` split is not used.
+Splits are called **train**, **tune**, **test** and **holdout**. **tune** is a speaker-disjoint ~15% slice of
+train; *every* choice (checkpoint, early stopping, hyper-parameters, reject threshold tau, misfire weight,
+architecture, ablations) is made on tune, and the model is fitted on the rest of train. **test** is scored once, at
+the very end, for the final report (`--final-test`); **holdout** is only for live testing on the Pi. Neither ever
+selects anything. The `numerals` split is not used.
+
+```bash
+python scripts/make_tune_split.py --pack-dir data/packs --frac 0.15 --seed 0 --out data/packs/tune_split.json
+python -m vcm.train --select-split tune ...        # train on train_idx only, select on tune; test is never loaded
+```
+
+`make_tune_split.py` picks whole speakers, stratified (group recordings, Xela's speakers, group synthetic voices,
+each open-source dataset: ~15% of each stratum's clips; a one-speaker stratum stays in train), tops up so every
+variation and OUT_OF_SCOPE has >= 3 tune clips, and assigns synthetic negatives (`neg_tune` only if all their train
+sources are tune speakers, mixed rows dropped). Default `select_split: test` in `configs/vcm.yaml` is the old
+behaviour so earlier runs reproduce exactly.
 
 ## Setup
 
@@ -52,10 +65,11 @@ python -m vcm.train --out exp/bc_resnet_S_s0 --resume      # continue from last.
 
 Defaults are in `configs/vcm.yaml` (`--config other.yaml` overlays it; CLI flags win).
 AdamW, cosine schedule with warmup, label smoothing 0.1, real voices sampled 3x more often.
-Device: CUDA, else Apple MPS, else CPU. Every epoch the model is scored on test and a JSON line
-is appended to `log.jsonl`. `best.pt` = best test variation balanced accuracy; `last.pt` = full
+Device: CUDA, else Apple MPS, else CPU. Every epoch the model is scored on the selection split (`tune`, or `test`
+for old-style runs) and a JSON line with `tune_*` (or `test_*`) keys is appended to `log.jsonl`. `best.pt` = best
+selection score; `last.pt` = full
 resume state. Early stopping (see `vcm/early_stop.py`) stops when both the train loss has
-stopped improving (< 2% over 3 epochs) and the test score is below its best and below its value
+stopped improving (< 2% over 3 epochs) and the selection score is below its best and below its value
 3 epochs ago (min 8, max 60 epochs). The final model is `best.pt`. `summary.json` records the
 stop reason.
 
@@ -64,8 +78,9 @@ Augmentation presets: `none`, `light`, `heavy` (`vcm/augment.py` documents every
 ## Evaluate
 
 ```bash
-python -m vcm.eval --model exp/bc_resnet_S_s0/best.pt --split test --sweep-tau --out results/bc_S_s0
-python -m vcm.eval --model exp/bc_resnet_S_s0/model.onnx --split test --tau 0.6 --out results/bc_S_s0_onnx
+python -m vcm.eval --model exp/bc_resnet_S_s0/best.pt --split tune --sweep-tau --out results/bc_S_s0
+python -m vcm.eval --model exp/bc_resnet_S_s0/model.onnx --split tune --tau 0.6 --out results/bc_S_s0_onnx
+python -m vcm.eval --model exp/bc_resnet_S_s0/model.onnx --split test --tau 0.6 --final-test --out results/final   # once, at the end
 python scripts/compare.py results/a/predictions.csv results/b/predictions.csv   # paired sign test
 ```
 
@@ -74,7 +89,8 @@ The headline number is **variation balanced accuracy**: mean recall over the 93 
 variations plus the out-of-scope group. Also reported: command accuracy, per-slot-head accuracy,
 out-of-scope false-accept rate, in-scope false-reject rate, breakdown by accent group and real vs
 synthetic voices, Wilson 95% intervals, confusion matrices and per-clip predictions.
-Choosing the reject threshold tau on test is what `--sweep-tau` does.
+Choosing the reject threshold tau on tune is what `--sweep-tau` does. `--split test|holdout|neg_test` is refused
+unless `--final-test` is given.
 
 ## Misfires and synthetic negatives
 
@@ -90,12 +106,13 @@ python scripts/make_negatives.py --dataset ~/ai231-me2-collated/dataset --noise 
        --out ~/ai231-me2-collated/dataset/synthetic_negatives --n-train 1000 --n-test 250 --seed 0
 python scripts/pack_data.py --negatives ~/ai231-me2-collated/dataset/synthetic_negatives   # neg_train, neg_test
 python -m vcm.train --use-negatives --negatives-weight 1.0 --misfire-weight 1.0 --out exp/bc_resnet_S_s0_neg
-python -m vcm.eval --model exp/x/best.pt --split neg_test          # misfire rate + per neg_kind
-python -m vcm.eval --model exp/x/best.pt --split test --tau-table  # per tau: var bal acc, OOS FA, neg misfire, false reject
+python -m vcm.eval --model exp/x/best.pt --split neg_tune          # misfire rate + per neg_kind (tune slice of neg_train)
+python -m vcm.eval --model exp/x/best.pt --split tune --tau-table  # per tau: var bal acc, OOS FA, neg misfire, false reject
 ```
 
-If `neg_test` is packed, every epoch also logs `test_neg_misfire` (argmax) and `test_neg_misfire_tau`
-(at `eval_tau`). It is a diagnostic only: selection score, early stopping and the gold test metrics are unchanged.
+Every epoch also logs `<split>_neg_misfire` (argmax) and `<split>_neg_misfire_tau` (at `eval_tau`), on `neg_tune`
+with `--select-split tune` (or on `neg_test` if packed, in old-style runs). It is a diagnostic only: selection score
+and early stopping are unchanged.
 `scripts/bakeoff.sh` takes `TAG=_neg` to suffix the run dir name.
 
 ## Export
@@ -119,9 +136,10 @@ scripts/bakeoff.sh runs.txt                     # lines of "arch tier seed"
 EXTRA="--num-workers 4" scripts/bakeoff.sh      # extra train.py flags
 ```
 
+Use `TAG=_tune EXTRA="--select-split tune" scripts/bakeoff.sh` for tune-selected runs.
 Runs go to `exp/<arch>_<tier>_s<seed>/`, finished runs are skipped, unfinished ones resume,
 and `results/bakeoff.csv` is written at the end. `scripts/smoke.py` is the quick all-architecture
-check (500 clips, 1 epoch, export, ONNX eval, int8).
+check (500 clips, 1 epoch, export, ONNX eval, int8; evaluates on train clips, never on test).
 
 ## Licence
 
