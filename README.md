@@ -76,6 +76,28 @@ out-of-scope false-accept rate, in-scope false-reject rate, breakdown by accent 
 synthetic voices, Wilson 95% intervals, confusion matrices and per-clip predictions.
 Choosing the reject threshold tau on test is what `--sweep-tau` does.
 
+## Misfires and synthetic negatives
+
+A *misfire* is non-command audio (talk, noise, partial speech) predicted as a command. Two optional,
+default-off features (old configs reproduce bit-for-bit):
+
+* `misfire_weight` (`--misfire-weight`): adds `w * mean(1 - softmax(cmd)[OOS])` over the true-OOS rows of each
+  batch. `train_loss` includes it; `train_loss_misfire` is logged separately.
+* Synthetic negatives, kept in a **separate folder, not part of the gold splits**:
+
+```bash
+python scripts/make_negatives.py --dataset ~/ai231-me2-collated/dataset --noise data/noise \
+       --out ~/ai231-me2-collated/dataset/synthetic_negatives --n-train 1000 --n-test 250 --seed 0
+python scripts/pack_data.py --negatives ~/ai231-me2-collated/dataset/synthetic_negatives   # neg_train, neg_test
+python -m vcm.train --use-negatives --negatives-weight 1.0 --misfire-weight 1.0 --out exp/bc_resnet_S_s0_neg
+python -m vcm.eval --model exp/x/best.pt --split neg_test          # misfire rate + per neg_kind
+python -m vcm.eval --model exp/x/best.pt --split test --tau-table  # per tau: var bal acc, OOS FA, neg misfire, false reject
+```
+
+If `neg_test` is packed, every epoch also logs `test_neg_misfire` (argmax) and `test_neg_misfire_tau`
+(at `eval_tau`). It is a diagnostic only: selection score, early stopping and the gold test metrics are unchanged.
+`scripts/bakeoff.sh` takes `TAG=_neg` to suffix the run dir name.
+
 ## Export
 
 ```bash

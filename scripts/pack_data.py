@@ -14,11 +14,13 @@ Outputs in --out (default data/packs):
   <split>_audio.npy   int16 (N, 96000 or 80000)
   <split>_meta.parquet  labels (cmd_idx, slot_head_idx, slot_value_idx, variation_idx),
                         metadata, trimmed length
+  neg_train_* / neg_test_*  (--negatives) same format as train / test, from the synthetic negatives
   noise.npz           (--noise) all noise wavs concatenated int16 + offsets
 
 Usage:
   python scripts/pack_data.py --dataset ~/ai231-me2-collated/dataset --splits train test holdout
   python scripts/pack_data.py --noise data/noise
+  python scripts/pack_data.py --negatives ~/ai231-me2-collated/dataset/synthetic_negatives   # neg_train, neg_test
 """
 from __future__ import annotations
 
@@ -93,11 +95,14 @@ def process(args):
     return centre_pad(x, length) + (len(x) / SR,)
 
 
-def pack_split(dataset: Path, split: str, out: Path, workers: int):
+def pack_split(dataset: Path, split: str, out: Path, workers: int, name: str | None = None):
+    """Pack <dataset>/<split>/ as <out>/<name>_audio.npy + <name>_meta.parquet (name defaults to split).
+    The buffer is the train-style 96,000 samples for split == "train", else the 80,000 test window."""
+    name = name or split
     df = pd.read_csv(dataset / split / "manifest.csv")
     length = BUF_TRAIN if split == "train" else WIN_TEST
     paths = [(str(dataset / split / f), length) for f in df["file"]]
-    arr = np.lib.format.open_memmap(out / f"{split}_audio.npy", mode="w+", dtype=np.int16,
+    arr = np.lib.format.open_memmap(out / f"{name}_audio.npy", mode="w+", dtype=np.int16,
                                     shape=(len(df), length))
     lens = np.zeros(len(df), dtype=np.float32)
     with ProcessPoolExecutor(workers) as ex:
@@ -115,8 +120,11 @@ def pack_split(dataset: Path, split: str, out: Path, workers: int):
         "cmd_idx": lab[:, 0], "slot_head_idx": lab[:, 1], "slot_value_idx": lab[:, 2],
         "variation_idx": lab[:, 3],
     })
-    meta.to_parquet(out / f"{split}_meta.parquet", index=False)
-    print(f"{split}: {len(df)} clips, buffer {length}, mean speech {lens.mean():.2f}s, "
+    for extra in ("neg_kind", "source_files"):       # synthetic-negative manifests carry these
+        if extra in df.columns:
+            meta[extra] = df[extra].fillna("").astype(str)
+    meta.to_parquet(out / f"{name}_meta.parquet", index=False)
+    print(f"{name}: {len(df)} clips, buffer {length}, mean speech {lens.mean():.2f}s, "
           f"clipped-to-window {(lens >= length / SR - 1e-3).sum()}")
 
 
@@ -140,6 +148,9 @@ def main():
     ap.add_argument("--splits", nargs="*", default=[])
     ap.add_argument("--out", default="data/packs")
     ap.add_argument("--noise", default=None, help="folder of noise wavs to pack into noise.npz")
+    ap.add_argument("--negatives", default=None,
+                    help="synthetic-negatives folder (scripts/make_negatives.py output): packs <dir>/train as "
+                         "neg_train (96,000-sample train buffer) and <dir>/test as neg_test (80,000 window)")
     ap.add_argument("--workers", type=int, default=8)
     a = ap.parse_args()
     out = Path(a.out)
@@ -147,6 +158,10 @@ def main():
     for s in a.splits:
         assert s in ("train", "test", "holdout"), f"unknown split {s} (numerals is not used)"
         pack_split(Path(a.dataset).expanduser(), s, out, a.workers)
+    if a.negatives:
+        neg = Path(a.negatives).expanduser()
+        for src, name in (("train", "neg_train"), ("test", "neg_test")):
+            pack_split(neg, src, out, a.workers, name=name)
     if a.noise:
         pack_noise(Path(a.noise), out)
 

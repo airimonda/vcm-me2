@@ -1,3 +1,7 @@
 # Same-size baseline for the deck: DS-CNN tier S/M, identical data/aug/stopping.
 arch: ds_cnn
 tier: S
+# Misfire reduction (both off = identical to earlier runs; override on the CLI or here):
+misfire_weight: 0.0      # >0: extra loss on probability mass that true-OOS clips put on any command
+use_negatives: false     # true: add synthetic negatives (neg_train pack) to the training set
+negatives_weight: 1.0    # sampling weight of the negatives

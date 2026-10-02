@@ -8,6 +8,11 @@ Primary metric: variation balanced accuracy = mean recall over the 93 Option B
 variations + the OOS group (94 groups).
 
     python -m vcm.eval --model exp/x/best.pt --pack data/packs --split test --tau 0.5 --out results/x
+
+Synthetic negatives (scripts/make_negatives.py + pack_data.py --negatives): `--split neg_test` reports the
+misfire rate (fraction of clips NOT predicted OUT_OF_SCOPE) overall and per neg_kind.
+`--tau-table` prints, per tau: gold-test variation bal acc, gold OOS false-accept, neg_test misfire and
+in-scope false-reject (needs the gold split plus a neg_test pack).
 """
 from __future__ import annotations
 
@@ -183,13 +188,31 @@ def compute_metrics(meta: pd.DataFrame, cmd_prob, slot_prob, tau: float = 0.0, d
     return out
 
 
-def tau_sweep(meta, cmd_prob, slot_prob, taus=None, max_oos_fa=None):
+def misfire_stats(meta: pd.DataFrame, cmd_prob, slot_prob=None, tau: float = 0.0):
+    """Misfire = a non-command clip (all rows of a negatives pack are OUT_OF_SCOPE) whose decided command
+    is not OUT_OF_SCOPE. Returns {"misfire_rate", "n", "by_neg_kind": {kind: {"n", "misfire_rate"}}}."""
+    pred = np.where(cmd_prob.max(1) < tau, OOS_IDX, cmd_prob.argmax(1))
+    mis = pred != OOS_IDX
+    out = {"misfire_rate": float(mis.mean()) if len(mis) else float("nan"), "n": int(len(mis)), "tau": tau}
+    if meta is not None and "neg_kind" in meta.columns:
+        kinds = meta["neg_kind"].astype(str).to_numpy()
+        out["by_neg_kind"] = {k: {"n": int((kinds == k).sum()), "misfire_rate": float(mis[kinds == k].mean())}
+                              for k in sorted(set(kinds))}
+    return out
+
+
+def tau_sweep(meta, cmd_prob, slot_prob, taus=None, max_oos_fa=None, neg_cmd_prob=None):
+    """Sweep the reject threshold. With neg_cmd_prob (softmax of neg_test clips) a `neg_misfire` column is added;
+    it does not influence which tau is picked."""
     taus = np.round(np.concatenate([np.arange(0, 0.9, 0.05), np.arange(0.9, 1.0, 0.01)]), 2) if taus is None else taus
     rows = []
     for t in taus:
         m = compute_metrics(meta, cmd_prob, slot_prob, float(t), detail=False)
-        rows.append({k: m[k] for k in ("tau", "variation_bal_acc", "command_acc", "oos_false_accept",
-                                       "in_scope_false_reject")})
+        row = {k: m[k] for k in ("tau", "variation_bal_acc", "command_acc", "oos_false_accept",
+                                 "in_scope_false_reject")}
+        if neg_cmd_prob is not None:
+            row["neg_misfire"] = misfire_stats(None, neg_cmd_prob, tau=float(t))["misfire_rate"]
+        rows.append(row)
     df = pd.DataFrame(rows)
     cand = df if max_oos_fa is None else df[df["oos_false_accept"] <= max_oos_fa]
     if len(cand) == 0:
@@ -224,20 +247,35 @@ def predictions_frame(meta, cmd_prob, slot_prob, tau):
     df["pred_slot_idx"] = pred_slot
     df["max_prob"] = cmd_prob.max(1)
     df["correct"] = ok.astype(int)
+    if "neg_kind" in meta.columns:
+        df["neg_kind"] = meta["neg_kind"].to_numpy()
     return df
 
 
 def evaluate_model(model_path, pack_dir, split="test", tau=0.0, max_clips=None, out_dir=None, device="cpu",
-                   sweep=False, batch_size=32, progress=True, max_oos_fa=None):
+                   sweep=False, batch_size=32, progress=True, max_oos_fa=None, tau_table=False,
+                   neg_split="neg_test"):
     ds = PackedSplit(pack_dir, split, max_clips=max_clips)
     predict = make_predictor(model_path, device)
     cp, sp = predict_split(predict, ds, batch_size, progress)
-    if sweep:
-        sw, best_tau = tau_sweep(ds.meta, cp, sp, max_oos_fa=max_oos_fa)
-        tau = best_tau
+    ncp = None
+    if tau_table:
+        if split.startswith("neg_"):
+            raise ValueError("--tau-table needs a gold split (e.g. test) as --split")
+        ncp, _ = predict_split(predict, PackedSplit(pack_dir, neg_split, max_clips=max_clips), batch_size, progress)
+    if sweep or tau_table:
+        sw, best_tau = tau_sweep(ds.meta, cp, sp, max_oos_fa=max_oos_fa, neg_cmd_prob=ncp)
+        if sweep:
+            tau = best_tau
     m = compute_metrics(ds.meta, cp, sp, tau)
     m["model"] = str(model_path)
     m["split"] = split
+    if split.startswith("neg_"):                       # synthetic negatives: every clip is OUT_OF_SCOPE
+        ms = misfire_stats(ds.meta, cp, sp, tau)
+        m["misfire_rate"] = ms["misfire_rate"]
+        m["by_neg_kind"] = ms.get("by_neg_kind", {})
+    if tau_table:
+        m["tau_table"] = sw.to_dict("records")
     if out_dir:
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)
@@ -247,7 +285,7 @@ def evaluate_model(model_path, pack_dir, split="test", tau=0.0, max_clips=None, 
         c1, c2 = confusions(ds.meta, pc, sc)
         c1.to_csv(out / "confusion_command.csv")
         c2.to_csv(out / "confusion_joint.csv")
-        if sweep:
+        if sweep or tau_table:
             sw.to_csv(out / "tau_sweep.csv", index=False)
     return m
 
@@ -256,17 +294,29 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help=".pt or .onnx")
     ap.add_argument("--pack", default="data/packs")
-    ap.add_argument("--split", default="test", choices=["train", "test", "holdout"])
+    ap.add_argument("--split", default="test", choices=["train", "test", "holdout", "neg_train", "neg_test"])
     ap.add_argument("--tau", type=float, default=0.0)
     ap.add_argument("--sweep-tau", action="store_true", help="sweep tau on this split and use the best")
+    ap.add_argument("--tau-table", action="store_true",
+                    help="print a per-tau table: gold-split variation bal acc, gold OOS false-accept, neg_test misfire, "
+                         "in-scope false-reject (neg split from --neg-split); saved as tau_sweep.csv with --out")
+    ap.add_argument("--neg-split", default="neg_test", choices=["neg_train", "neg_test"])
     ap.add_argument("--max-oos-fa", type=float, default=None,
                     help="with --sweep-tau: only consider taus whose OOS false-accept rate is <= this")
     ap.add_argument("--max-clips", type=int, default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--device", default="cpu")
     a = ap.parse_args()
-    m = evaluate_model(a.model, a.pack, a.split, a.tau, a.max_clips, a.out, a.device, a.sweep_tau, max_oos_fa=a.max_oos_fa)
+    m = evaluate_model(a.model, a.pack, a.split, a.tau, a.max_clips, a.out, a.device, a.sweep_tau, max_oos_fa=a.max_oos_fa,
+                       tau_table=a.tau_table, neg_split=a.neg_split)
+    table = m.pop("tau_table", None)
+    if a.split.startswith("neg_"):
+        print(f"misfire rate {m['misfire_rate']:.4f} on {m['n']} {a.split} clips (tau {m['tau']})")
+        for k, v in m["by_neg_kind"].items():
+            print(f"  {k:13s} n={v['n']:4d} misfire {v['misfire_rate']:.4f}")
     print(json.dumps({k: v for k, v in m.items() if not k.startswith("by_")}, indent=2))
+    if table is not None:
+        print(pd.DataFrame(table).to_string(index=False, float_format=lambda x: f"{x:.4f}"))
 
 
 if __name__ == "__main__":

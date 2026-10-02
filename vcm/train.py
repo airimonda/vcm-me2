@@ -20,12 +20,13 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import ConcatDataset, DataLoader, Sampler
 
 from .augment import Augmenter, NoiseBank
 from .data import PackedSplit, center_window, to_float
 from .early_stop import EarlyStopper
-from .eval import compute_metrics, pick_device
+from .eval import compute_metrics, decide, pick_device
+from .labels import OOS_IDX
 from .losses import multitask_loss
 from .models import build_model, count_params
 
@@ -54,7 +55,8 @@ def load_cfg(args) -> dict:
     if args.config:
         cfg.update(yaml.safe_load(open(args.config)) or {})
     for k in ("arch", "tier", "seed", "aug", "epochs", "out", "batch_size", "lr", "num_workers", "device",
-              "pack_dir", "max_train_clips", "max_test_clips"):
+              "pack_dir", "max_train_clips", "max_test_clips", "misfire_weight", "use_negatives",
+              "negatives_weight"):
         v = getattr(args, k, None)
         if v is not None:
             cfg[k] = v
@@ -116,6 +118,49 @@ def score_test(model, loader, device, tau, meta):
     return compute_metrics(meta, np.concatenate(cp), np.concatenate(sp), tau, detail=False)
 
 
+def pack_exists(pack_dir, split) -> bool:
+    p = Path(pack_dir)
+    return (p / f"{split}_audio.npy").exists() and (p / f"{split}_meta.parquet").exists()
+
+
+def build_train_set(cfg):
+    """Gold train set, plus the synthetic neg_train pack when cfg['use_negatives'] and it exists.
+
+    Returns (dataset, sampling weights aligned with the dataset, n_negatives). Gold rows keep the
+    real_weight / oos_weight logic unchanged; negative rows get negatives_weight times the normal
+    synthetic weight (1.0; oos_weight is NOT applied to them)."""
+    gold = PackedSplit(cfg["pack_dir"], "train", cfg["max_train_clips"], seed=cfg["seed"])
+    w = gold.sample_weights(cfg["real_weight"], cfg.get("oos_weight", 1.0))
+    if not cfg.get("use_negatives", False):
+        return gold, w, 0
+    if not pack_exists(cfg["pack_dir"], "neg_train"):
+        print(f"WARNING: use_negatives set but {cfg['pack_dir']}/neg_train pack not found; training without", flush=True)
+        return gold, w, 0
+    neg = PackedSplit(cfg["pack_dir"], "neg_train", cfg["max_train_clips"], seed=cfg["seed"])
+    wn = neg.sample_weights(cfg["real_weight"], 1.0) * float(cfg.get("negatives_weight", 1.0))
+    return ConcatDataset([gold, neg]), torch.cat([w, wn]), len(neg)
+
+
+@torch.no_grad()
+def score_neg(model, ds, device, tau, bs=128):
+    """Misfire rate on the synthetic-negative test pack: fraction of clips whose argmax command is not
+    OUT_OF_SCOPE (tau 0), and the same after the reject threshold tau.
+    Batches by hand instead of a DataLoader: creating a DataLoader iterator draws from the global torch RNG,
+    which would shift the training run (gold metrics must not depend on the diagnostic being present)."""
+    model.eval()
+    cp = []
+    for i in range(0, len(ds), bs):
+        wav = torch.stack([ds[k][0] for k in range(i, min(i + bs, len(ds)))])
+        wav = to_float(center_window(wav) if wav.shape[1] != 80000 else wav).to(device)
+        c, _s = model(wav)
+        cp.append(torch.softmax(c.float(), -1).cpu().numpy())
+    cp = np.concatenate(cp)
+    dummy = np.zeros((len(cp), 6, 3))
+    argmax_pred, _ = decide(cp, dummy, 0.0)
+    tau_pred, _ = decide(cp, dummy, tau)
+    return {"neg_misfire": float((argmax_pred != OOS_IDX).mean()), "neg_misfire_tau": float((tau_pred != OOS_IDX).mean())}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=None)
@@ -132,6 +177,12 @@ def main(argv=None):
     ap.add_argument("--pack-dir", dest="pack_dir")
     ap.add_argument("--max-train-clips", dest="max_train_clips", type=int)
     ap.add_argument("--max-test-clips", dest="max_test_clips", type=int)
+    ap.add_argument("--misfire-weight", dest="misfire_weight", type=float,
+                    help="weight of the OOS misfire loss term (0 = off)")
+    ap.add_argument("--use-negatives", dest="use_negatives", action=argparse.BooleanOptionalAction, default=None,
+                    help="also train on the neg_train pack (synthetic negatives)")
+    ap.add_argument("--negatives-weight", dest="negatives_weight", type=float,
+                    help="sampling weight of neg_train clips (times the normal synthetic weight of 1)")
     ap.add_argument("--resume", action="store_true")
     args = ap.parse_args(argv)
     cfg = load_cfg(args)
@@ -148,9 +199,11 @@ def main(argv=None):
     seed_all(cfg["seed"])
     (out / "config.yaml").write_text(yaml.safe_dump(cfg))
 
-    train_ds = PackedSplit(cfg["pack_dir"], "train", cfg["max_train_clips"], seed=cfg["seed"])
+    train_ds, train_w, n_neg = build_train_set(cfg)
     test_ds = PackedSplit(cfg["pack_dir"], "test", cfg["max_test_clips"], seed=0)
-    sampler = EpochSampler(train_ds.sample_weights(cfg["real_weight"], cfg.get("oos_weight", 1.0)), len(train_ds), cfg["seed"])
+    neg_test_ds = (PackedSplit(cfg["pack_dir"], "neg_test", cfg["max_test_clips"], seed=0)
+                   if pack_exists(cfg["pack_dir"], "neg_test") else None)
+    sampler = EpochSampler(train_w, len(train_ds), cfg["seed"])
     nw = cfg["num_workers"]
     train_dl = DataLoader(train_ds, batch_size=cfg["batch_size"], sampler=sampler, num_workers=nw,
                           drop_last=True, persistent_workers=nw > 0)
@@ -185,7 +238,9 @@ def main(argv=None):
         print(f"resumed from epoch {start_epoch}", flush=True)
 
     print(f"{cfg['arch']} tier {cfg['tier']}: {n_params:,} params | device {device} | "
-          f"train {len(train_ds)} test {len(test_ds)} | aug {cfg['aug']}", flush=True)
+          f"train {len(train_ds)} ({n_neg} neg) test {len(test_ds)}"
+          f"{f' neg_test {len(neg_test_ds)}' if neg_test_ds is not None else ''} | aug {cfg['aug']} | "
+          f"misfire_weight {cfg.get('misfire_weight', 0.0)}", flush=True)
     log_f = open(out / "log.jsonl", "a")
     stopped = stopper.reason is not None
 
@@ -195,7 +250,7 @@ def main(argv=None):
         t0 = time.time()
         sampler.set_epoch(epoch)
         model.train()
-        tot = tot_c = tot_s = 0.0
+        tot = tot_c = tot_s = tot_m = 0.0
         nb = 0
         for wav, lab in train_dl:
             wav = to_float(wav).to(device, non_blocking=True)
@@ -206,8 +261,8 @@ def main(argv=None):
                 feats = aug.spec(feats)
             with torch.autocast(device.type, dtype=torch.float16, enabled=use_amp):
                 cmd_l, slot_l = model.forward_features(feats)
-            loss, lc, ls = multitask_loss(cmd_l.float(), slot_l.float(), lab[:, 0], lab[:, 1], lab[:, 2],
-                                          cfg["label_smoothing"])
+            loss, lc, ls, lm = multitask_loss(cmd_l.float(), slot_l.float(), lab[:, 0], lab[:, 1], lab[:, 2],
+                                              cfg["label_smoothing"], cfg.get("misfire_weight", 0.0))
             opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()
             scaler.unscale_(opt)
@@ -218,23 +273,32 @@ def main(argv=None):
             tot += loss.item()
             tot_c += lc.item()
             tot_s += ls.item()
+            tot_m += lm.item()
             nb += 1
         m = score_test(model, test_dl, device, cfg["eval_tau"], test_ds.meta)
+        mn = score_neg(model, neg_test_ds, device, cfg["eval_tau"]) if neg_test_ds is not None else None
         dt = time.time() - t0
         times.append(dt)
         # selection score: mix of all-clips and real-voice variation balanced accuracy
         w = cfg.get("select_real_weight", 0.0)
         score = (1 - w) * m["variation_bal_acc"] + w * m["real_variation_bal_acc"]
         row = {"epoch": epoch, "train_loss": tot / nb, "train_loss_cmd": tot_c / nb, "train_loss_slot": tot_s / nb,
+               "train_loss_misfire": tot_m / nb,
                "test_select_score": score, "test_variation_bal_acc": m["variation_bal_acc"],
                "test_real_variation_bal_acc": m["real_variation_bal_acc"], "test_command_acc": m["command_acc"],
                "test_slot_acc": m["slot_acc"], "test_oos_false_accept": m["oos_false_accept"],
                "test_in_scope_false_reject": m["in_scope_false_reject"], "lr": opt.param_groups[0]["lr"],
                "time_s": dt}
+        if mn is not None:                 # diagnostic only: never feeds the selection score / early stopping
+            row["test_neg_misfire"] = mn["neg_misfire"]
+            row["test_neg_misfire_tau"] = mn["neg_misfire_tau"]
         stopped = stopper.update(row["train_loss"], score)
         if stopper.best_epoch == epoch:
             best_metrics = {k: m[k] for k in ("variation_bal_acc", "real_variation_bal_acc", "command_acc", "slot_acc", "oos_false_accept",
                                               "in_scope_false_reject", "command_bal_acc")}
+            if mn is not None:
+                best_metrics["neg_misfire"] = mn["neg_misfire"]
+                best_metrics["neg_misfire_tau"] = mn["neg_misfire_tau"]
             best_metrics["epoch"] = epoch
             best_metrics["select_score"] = score
             torch.save({"arch": cfg["arch"], "tier": cfg["tier"], "model": model.state_dict(), "epoch": epoch,
@@ -242,9 +306,13 @@ def main(argv=None):
         row["is_best"] = stopper.best_epoch == epoch
         log_f.write(json.dumps(row) + "\n")
         log_f.flush()
+        extra = f"mfloss {row['train_loss_misfire']:.4f} " if cfg.get("misfire_weight", 0.0) else ""
+        if mn is not None:
+            extra += f"negMF {mn['neg_misfire']:.3f}" + (f"/{mn['neg_misfire_tau']:.3f}@tau" if cfg["eval_tau"] else "") + " "
         print(f"ep {epoch:3d} loss {row['train_loss']:.4f} test select {score:.4f} var-bal-acc {m['variation_bal_acc']:.4f} "
               f"real {m['real_variation_bal_acc']:.4f} cmd {m['command_acc']:.4f} "
-              f"slot {m['slot_acc']:.4f} oosFA {m['oos_false_accept']:.3f} {dt:.1f}s"
+              f"slot {m['slot_acc']:.4f} oosFA {m['oos_false_accept']:.3f} "
+              f"{extra}{dt:.1f}s"
               f"{' *' if row['is_best'] else ''}", flush=True)
         torch.save({"cfg": cfg, "model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
                     "scaler": scaler.state_dict(), "stopper": stopper.state_dict(), "epoch": epoch,

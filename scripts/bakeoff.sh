@@ -7,11 +7,14 @@
 #   scripts/bakeoff.sh                          # round 1: all 6 archs, tier S, seed 0
 #   scripts/bakeoff.sh runs.txt                 # file with lines "arch tier seed" (# comments ok)
 #   EXTRA="--num-workers 4 --device cuda" scripts/bakeoff.sh
+#   TAG=_neg EXTRA="--misfire-weight 1.0 --use-negatives" scripts/bakeoff.sh   # -> exp/<arch>_<tier>_s<seed>_neg
+# TAG (default empty) is appended to the run dir name, so tagged runs never collide with plain ones.
 # Run it inside tmux; if the machine restarts just run it again.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${PY:-.venv/bin/python}"
 EXTRA="${EXTRA:-}"
+TAG="${TAG:-}"
 LIST="${1:-}"
 
 if [[ -n "$LIST" ]]; then
@@ -24,7 +27,7 @@ fi
 
 for line in "${RUNS[@]}"; do
   read -r arch tier seed <<<"$line"
-  out="exp/${arch}_${tier}_s${seed}"
+  out="exp/${arch}_${tier}_s${seed}${TAG}"
   if [[ -f "$out/summary.json" ]]; then
     echo "[skip] $out (finished)"; continue
   fi

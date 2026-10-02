@@ -18,6 +18,9 @@ num_workers: 0
 grad_clip: 5.0
 select_real_weight: 0.5  # best.pt/early stop score = 0.5 all-clips + 0.5 real-voice variation bal acc
 eval_tau: 0.0            # reject threshold used for the per-epoch test log (0 = argmax only)
+misfire_weight: 0.0      # >0: add w * mean(1 - softmax(cmd)[OOS]) over true-OOS rows (non-command audio -> OOS); 0 = off
+use_negatives: false     # true: also train on data/packs/neg_train (synthetic negatives, scripts/make_negatives.py)
+negatives_weight: 1.0    # sampling weight of neg_train clips (x the normal synthetic weight of 1.0)
 early_stop:
   n: 3
   min_rel_impr: 0.02
