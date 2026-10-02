@@ -25,7 +25,7 @@ DEFAULTS: dict = {
     "clock": {"timezone": None},
     "replies": {"dir": "replies", "catalogue": "config/replies.json"},
     "ui": {"enabled": True, "host": "0.0.0.0", "port": 8080},
-    "metrics": {"dir": "runtime_logs"},
+    "metrics": {"dir": "runtime_logs", "live_log": None},
 }
 
 MOCK_KEYS = ("light", "aircon", "spotify")

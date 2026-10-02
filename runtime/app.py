@@ -158,6 +158,18 @@ class Runtime:
             except Exception:
                 log.exception("inbound message failed: %r", msg)
 
+    def live_log(self, rec: dict):
+        """append one JSON line to the live log (cfg metrics.live_log, default logs/live.log); never raises"""
+        path = self.cfg["metrics"].get("live_log")
+        if not path:
+            return
+        try:
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+            with open(path, "a") as f:
+                f.write(json.dumps({"t": round(time.time(), 3), **rec}) + "\n")
+        except OSError:
+            log.exception("live log write failed")
+
     # -- one turn -----------------------------------------------------------------------------
     async def classify(self, window: np.ndarray, turn: Turn):
         decision = await asyncio.get_running_loop().run_in_executor(self.infer_pool, self.model.classify, window)
@@ -236,6 +248,10 @@ class Runtime:
         window = prepare_window(ep.audio)
         turn.mark("prep_done")
         cmd = await self.classify(window, turn)
+        # one line per recognised command for the class benchmark (vcm-benchmark): window prep + log-mel + model
+        self.live_log({"intent": cmd.command, "slot": cmd.slot,
+                       "infer_ms": round((turn.marks["vcm_done"] - turn.marks["window_closed"]) * 1000, 1),
+                       "audio_ms": round(len(window) / SR * 1000), "prob": round(cmd.prob, 3)})
         resp, _ = await self.handle_command(cmd, turn, audio=window)
         return cmd, resp
 
@@ -262,6 +278,7 @@ class Runtime:
                     while event is None:
                         event = det.feed(await it.__anext__())
                     turn.mark("wake_done", event.t_done)
+                    self.live_log({"event": "wake", "msg": "wake word detected"})
                     turn.mark("wake_start", event.t_done - event.infer_ms / 1000.0)
                     pre = det.ring.last(int(1.5 * SR))
                 self.set_mode("listening")

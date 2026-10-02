@@ -81,3 +81,4 @@ ui:
 
 metrics:
   dir: runtime_logs                        # one folder per run: runtime_logs/<YYYYmmdd-HHMMSS>/
+  live_log: logs/live.log                  # one JSON line per command {"intent","slot","infer_ms","audio_ms"} + wake lines (vcm-benchmark)
