@@ -1,0 +1,22 @@
+# Spotify Connect player "Watson" as a systemd USER service, no sudo needed.
+# librespot is the binary from the raspotify .deb, extracted to ~/.local/bin (see docs/runtime.md).
+# It plays through PipeWire (pulseaudio backend), so audio goes to the default sink: the echo-cancel sink,
+# which also gives the echo canceller the music as its reference signal.
+#
+#   cp deploy/librespot.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+#   systemctl --user enable --now librespot
+[Unit]
+Description=librespot Spotify Connect player (Watson)
+After=network-online.target pipewire.service pipewire-pulse.service wireplumber.service
+Wants=network-online.target pipewire-pulse.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/librespot --name Watson --device-type speaker --backend pulseaudio \
+  --bitrate 160 --initial-volume 60 --enable-volume-normalisation --cache %h/.cache/librespot \
+  --disable-audio-cache
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

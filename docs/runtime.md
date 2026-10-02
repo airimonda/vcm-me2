@@ -117,7 +117,19 @@ device on the Pi** (raspotify / librespot). A Spotify **Premium** account is req
 1. **Create an app** at <https://developer.spotify.com/dashboard>. Add the redirect URI
    `http://127.0.0.1:8888/callback` (Edit settings -> Redirect URIs; it must match exactly). Note the client id
    and client secret.
-2. **Install raspotify on the Pi** and name the device:
+2. **Install the Spotify Connect player on the Pi.** The setup used on the demo Pi needs no sudo: the
+   `librespot` binary is taken out of the raspotify `.deb` and run as a systemd *user* service
+   (`deploy/librespot.service`, device name "Watson", PipeWire/pulseaudio backend, so music goes to the
+   echo-cancel sink like the replies):
+   ```
+   url=$(curl -s https://api.github.com/repos/dtcooper/raspotify/releases/latest | grep -o 'https://[^"]*/raspotify_[^"]*arm64\.deb' | head -1)
+   curl -sL -o /tmp/raspotify.deb "$url" && mkdir -p /tmp/rs && dpkg-deb -x /tmp/raspotify.deb /tmp/rs
+   mkdir -p ~/.local/bin ~/.cache/librespot && cp /tmp/rs/usr/bin/librespot ~/.local/bin/
+   cp deploy/librespot.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+   systemctl --user enable --now librespot
+   ```
+   Pick "Watson" once from the Spotify app on a phone: librespot caches the login in `~/.cache/librespot`, after
+   which the device stays listed in the Web API's device list. The system-wide alternative is raspotify itself:
    ```
    curl -sL https://dtcooper.github.io/raspotify/install.sh | sh
    sudo nano /etc/raspotify/conf        # set LIBRESPOT_NAME="Watson"  (must equal music.device_name)
