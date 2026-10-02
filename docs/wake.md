@@ -14,7 +14,7 @@ from the Pi, 196 holdout commands with the wake word plus 10 without) gave:
 | --- | ---: |
 | Intent accuracy (19 intents, all 196 trials) | 46.9% |
 | Trials where the wake word was detected | 48.0% (94 of 196) |
-| Correct command, given the wake word fired | 92 of 94 |
+| Correct command, given the wake word fired | 86 of 94 (human 38 of 46, synthetic 48 of 48) |
 | Slot exact (intent right) | 100% (n = 47) |
 | False accept (out-of-scope fired) | 0 of 10 |
 | False wake (command without wake word fired) | 0 of 10 |

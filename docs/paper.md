@@ -619,7 +619,7 @@ All four variants run far faster than real time: the released ensemble needs 89 
 
 The first live run of the class benchmark on the holdout set (laptop loudspeaker about 1 m from the Pi; 196
 trials with the wake word, 10 without; run `20261002-182511`) reached 46.9% intent accuracy. In all 102 failed
-trials the wake word was not detected; when it was (94 trials), the command was right 92 times, slots were
+trials the wake word was not detected; when it was (94 trials), the command was right 86 times (38 of 46 human, 48 of 48 synthetic), slots were
 100% exact, and there were no false accepts (0 of 10) or false wakes (0 of 10). Mean inference was 69 ms per
 window (RTF 0.014). The wake model, not the command model, limits the live result; it is being rebuilt, see
 `docs/wake.md`.
