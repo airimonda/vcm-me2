@@ -1,0 +1,472 @@
+{
+ "arch": "ds_cnn",
+ "cfg": {
+  "width": 64
+ },
+ "params": 25730,
+ "best_epoch": 23,
+ "score": 0.6034264211127687,
+ "fa_budget_per_hour": 1.0,
+ "threshold": 0.981,
+ "at_threshold": {
+  "threshold": 0.981,
+  "fa_per_hour": 0.560134394912486,
+  "recall_clean": 0.6741835147744946,
+  "recall_clean_real": 0.7346938775510204,
+  "recall_channel": 0.3048211508553655,
+  "recall_channel_real": 0.6122448979591837
+ },
+ "recall_by_source": {
+  "bench_takes": {
+   "clean": 0.6666666666666666,
+   "channel": 0.4444444444444444
+  },
+  "own_wake_old": {
+   "clean": 0.75,
+   "channel": 0.65
+  },
+  "piper": {
+   "clean": 0.6693613581244947,
+   "channel": 0.28940986257073564
+  }
+ },
+ "tune_neg_hours": 1.7852858333333335,
+ "onnx_max_abs_diff": 1.6689300537109375e-06,
+ "table": [
+  {
+   "threshold": 0.05,
+   "fa_per_hour": 557.3337229379235,
+   "recall_clean": 1.0,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9930015552099534,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.075,
+   "fa_per_hour": 480.0351764400005,
+   "recall_clean": 1.0,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9883359253499222,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.1,
+   "fa_per_hour": 433.54402166226413,
+   "recall_clean": 1.0,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9844479004665629,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.125,
+   "fa_per_hour": 392.65421083365266,
+   "recall_clean": 1.0,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9797822706065319,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.15,
+   "fa_per_hour": 359.0461471389035,
+   "recall_clean": 0.9976671850699844,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9720062208398134,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.175,
+   "fa_per_hour": 329.9191586034542,
+   "recall_clean": 0.9968895800933126,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9657853810264385,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.2,
+   "fa_per_hour": 298.55163248835504,
+   "recall_clean": 0.995334370139969,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9642301710730948,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.225,
+   "fa_per_hour": 275.5861222969431,
+   "recall_clean": 0.995334370139969,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9580093312597201,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.25,
+   "fa_per_hour": 257.10168726483107,
+   "recall_clean": 0.995334370139969,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9541213063763608,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.275,
+   "fa_per_hour": 235.8165802581566,
+   "recall_clean": 0.995334370139969,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9494556765163297,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.3,
+   "fa_per_hour": 216.21187643621957,
+   "recall_clean": 0.995334370139969,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9416796267496111,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.325,
+   "fa_per_hour": 201.64838216849495,
+   "recall_clean": 0.9937791601866252,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9362363919129082,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.35,
+   "fa_per_hour": 192.1260974549827,
+   "recall_clean": 0.9922239502332815,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9292379471228616,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.375,
+   "fa_per_hour": 179.803140766908,
+   "recall_clean": 0.9922239502332815,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.921461897356143,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.4,
+   "fa_per_hour": 167.4801840788333,
+   "recall_clean": 0.9914463452566097,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9144634525660964,
+   "recall_channel_real": 1.0
+  },
+  {
+   "threshold": 0.425,
+   "fa_per_hour": 156.83763057549606,
+   "recall_clean": 0.9906687402799378,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.9066874027993779,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.45,
+   "fa_per_hour": 145.07480828233386,
+   "recall_clean": 0.9906687402799378,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8996889580093312,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.475,
+   "fa_per_hour": 133.87212038408416,
+   "recall_clean": 0.9891135303265941,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8926905132192846,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.5,
+   "fa_per_hour": 123.22956688074692,
+   "recall_clean": 0.9875583203732504,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8895800933125972,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.525,
+   "fa_per_hour": 118.74849172144702,
+   "recall_clean": 0.9852255054432348,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8818040435458787,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.55,
+   "fa_per_hour": 106.42553503337233,
+   "recall_clean": 0.9844479004665629,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8724727838258165,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.575,
+   "fa_per_hour": 95.22284713512262,
+   "recall_clean": 0.9828926905132193,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8631415241057543,
+   "recall_channel_real": 0.9795918367346939
+  },
+  {
+   "threshold": 0.6,
+   "fa_per_hour": 85.14042802669786,
+   "recall_clean": 0.9813374805598756,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8569206842923794,
+   "recall_channel_real": 0.9591836734693877
+  },
+  {
+   "threshold": 0.625,
+   "fa_per_hour": 79.53908407757301,
+   "recall_clean": 0.9813374805598756,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8452566096423018,
+   "recall_channel_real": 0.9387755102040817
+  },
+  {
+   "threshold": 0.65,
+   "fa_per_hour": 71.6972025487982,
+   "recall_clean": 0.9797822706065319,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8312597200622084,
+   "recall_channel_real": 0.9387755102040817
+  },
+  {
+   "threshold": 0.675,
+   "fa_per_hour": 65.53572420476085,
+   "recall_clean": 0.9797822706065319,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8164852255054432,
+   "recall_channel_real": 0.9387755102040817
+  },
+  {
+   "threshold": 0.7,
+   "fa_per_hour": 59.37424586072351,
+   "recall_clean": 0.9751166407465007,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8017107309486781,
+   "recall_channel_real": 0.9387755102040817
+  },
+  {
+   "threshold": 0.725,
+   "fa_per_hour": 49.85196114721125,
+   "recall_clean": 0.9696734059097978,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.7846034214618973,
+   "recall_channel_real": 0.9183673469387755
+  },
+  {
+   "threshold": 0.75,
+   "fa_per_hour": 42.57021401334893,
+   "recall_clean": 0.9657853810264385,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.7698289269051322,
+   "recall_channel_real": 0.8979591836734694
+  },
+  {
+   "threshold": 0.775,
+   "fa_per_hour": 40.32967643369899,
+   "recall_clean": 0.9626749611197511,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.7566096423017107,
+   "recall_channel_real": 0.8571428571428571
+  },
+  {
+   "threshold": 0.8,
+   "fa_per_hour": 30.24725732527424,
+   "recall_clean": 0.9510108864696734,
+   "recall_clean_real": 0.9795918367346939,
+   "recall_channel": 0.7301710730948678,
+   "recall_channel_real": 0.8571428571428571
+  },
+  {
+   "threshold": 0.825,
+   "fa_per_hour": 23.52564458632441,
+   "recall_clean": 0.9416796267496111,
+   "recall_clean_real": 0.9591836734693877,
+   "recall_channel": 0.7045101088646968,
+   "recall_channel_real": 0.8367346938775511
+  },
+  {
+   "threshold": 0.85,
+   "fa_per_hour": 19.044569427024523,
+   "recall_clean": 0.9307931570762052,
+   "recall_clean_real": 0.9591836734693877,
+   "recall_channel": 0.6772939346811819,
+   "recall_channel_real": 0.8163265306122449
+  },
+  {
+   "threshold": 0.875,
+   "fa_per_hour": 15.683763057549607,
+   "recall_clean": 0.9121306376360808,
+   "recall_clean_real": 0.9387755102040817,
+   "recall_channel": 0.6493001555209953,
+   "recall_channel_real": 0.8163265306122449
+  },
+  {
+   "threshold": 0.9,
+   "fa_per_hour": 10.642553503337233,
+   "recall_clean": 0.8919129082426127,
+   "recall_clean_real": 0.9183673469387755,
+   "recall_channel": 0.6080870917573873,
+   "recall_channel_real": 0.8163265306122449
+  },
+  {
+   "threshold": 0.925,
+   "fa_per_hour": 7.281747133862318,
+   "recall_clean": 0.8639191290824261,
+   "recall_clean_real": 0.9183673469387755,
+   "recall_channel": 0.5536547433903577,
+   "recall_channel_real": 0.7959183673469388
+  },
+  {
+   "threshold": 0.95,
+   "fa_per_hour": 3.9209407643874017,
+   "recall_clean": 0.8094867807153966,
+   "recall_clean_real": 0.8979591836734694,
+   "recall_channel": 0.48522550544323484,
+   "recall_channel_real": 0.7142857142857143
+  },
+  {
+   "threshold": 0.95,
+   "fa_per_hour": 3.9209407643874017,
+   "recall_clean": 0.8094867807153966,
+   "recall_clean_real": 0.8979591836734694,
+   "recall_channel": 0.48522550544323484,
+   "recall_channel_real": 0.7142857142857143
+  },
+  {
+   "threshold": 0.969,
+   "fa_per_hour": 1.6804031847374579,
+   "recall_clean": 0.7418351477449455,
+   "recall_clean_real": 0.8367346938775511,
+   "recall_channel": 0.38880248833592534,
+   "recall_channel_real": 0.673469387755102
+  },
+  {
+   "threshold": 0.981,
+   "fa_per_hour": 0.560134394912486,
+   "recall_clean": 0.6741835147744946,
+   "recall_clean_real": 0.7346938775510204,
+   "recall_channel": 0.3048211508553655,
+   "recall_channel_real": 0.6122448979591837
+  },
+  {
+   "threshold": 0.988,
+   "fa_per_hour": 0.560134394912486,
+   "recall_clean": 0.5824261275272161,
+   "recall_clean_real": 0.6530612244897959,
+   "recall_channel": 0.23405909797822705,
+   "recall_channel_real": 0.5306122448979592
+  },
+  {
+   "threshold": 0.993,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.4906687402799378,
+   "recall_clean_real": 0.6530612244897959,
+   "recall_channel": 0.16796267496111975,
+   "recall_channel_real": 0.46938775510204084
+  },
+  {
+   "threshold": 0.995,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.3849144634525661,
+   "recall_clean_real": 0.5510204081632653,
+   "recall_channel": 0.11975116640746501,
+   "recall_channel_real": 0.40816326530612246
+  },
+  {
+   "threshold": 0.997,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.291601866251944,
+   "recall_clean_real": 0.5102040816326531,
+   "recall_channel": 0.08320373250388803,
+   "recall_channel_real": 0.30612244897959184
+  },
+  {
+   "threshold": 0.998,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.20217729393468117,
+   "recall_clean_real": 0.4489795918367347,
+   "recall_channel": 0.05132192846034215,
+   "recall_channel_real": 0.30612244897959184
+  },
+  {
+   "threshold": 0.999,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.13763608087091758,
+   "recall_clean_real": 0.3469387755102041,
+   "recall_channel": 0.034992223950233284,
+   "recall_channel_real": 0.2653061224489796
+  },
+  {
+   "threshold": 0.999,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.08709175738724728,
+   "recall_clean_real": 0.30612244897959184,
+   "recall_channel": 0.026438569206842923,
+   "recall_channel_real": 0.20408163265306123
+  },
+  {
+   "threshold": 1.0,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.0583203732503888,
+   "recall_clean_real": 0.22448979591836735,
+   "recall_channel": 0.014774494556765163,
+   "recall_channel_real": 0.14285714285714285
+  },
+  {
+   "threshold": 1.0,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.038102643856920686,
+   "recall_clean_real": 0.20408163265306123,
+   "recall_channel": 0.006998444790046656,
+   "recall_channel_real": 0.10204081632653061
+  },
+  {
+   "threshold": 1.0,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.025660964230171075,
+   "recall_clean_real": 0.16326530612244897,
+   "recall_channel": 0.004665629860031105,
+   "recall_channel_real": 0.08163265306122448
+  },
+  {
+   "threshold": 1.0,
+   "fa_per_hour": 0.0,
+   "recall_clean": 0.016329704510108865,
+   "recall_clean_real": 0.14285714285714285,
+   "recall_channel": 0.004665629860031105,
+   "recall_channel_real": 0.08163265306122448
+  }
+ ],
+ "args": {
+  "arch": "ds_cnn",
+  "width": 64,
+  "depth": null,
+  "data": "/home/docquityadmin/vcm-me2/data/wake",
+  "packs": [
+   "/home/docquityadmin/vcm-me2/data/packs/train_audio.npy",
+   "/home/docquityadmin/vcm-me2/data/packs/neg_train_audio.npy"
+  ],
+  "noise": "/home/docquityadmin/vcm-me2/data/packs/noise.npz",
+  "split_json": "/home/docquityadmin/vcm-me2/data/packs/tune_split.json",
+  "out": "exp/wake/ds_cnn_64",
+  "seed": 0,
+  "batch": 256,
+  "steps": 300,
+  "max_epochs": 40,
+  "min_epochs": 15,
+  "patience": 10,
+  "lr": 0.003,
+  "pos_frac": 0.4,
+  "pos_real_frac": 0.3,
+  "pos_weight": 2.0,
+  "fa_budget": 1.0,
+  "device": "cuda",
+  "resume": true,
+  "threads": 8
+ }
+}

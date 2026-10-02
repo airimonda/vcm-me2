@@ -94,7 +94,24 @@ python benchmark.py --inject http://<pi>:8080 \
   --room-noise ~/vcm-me2/data/noise/mssnsd_AirConditioner_*.wav --room-snr 10
 ```
 
+## Result on the tune set
+
+Training resumed from the epoch-3 checkpoint of an interrupted run (weights only; that run had seen the
+earlier, unfiltered data for 3 epochs) and stopped early at epoch 33; the best epoch is 23
+(`results/wake/v2_report.json`, `v2_log.jsonl`). Comparison on the same tune set (`results/wake/v2_vs_old.json`):
+
+| Model, threshold | False wakes / h (tune stream) | Recall clean | Recall loudspeaker + noise | ... your real takes |
+| --- | ---: | ---: | ---: | ---: |
+| old (int8), 0.55 | 13.4 | 96.5% | 53.2% | 73.5% |
+| v2 (fp32), 0.90 | 10.6 | 89.2% | 60.8% | 81.6% |
+| v2 (fp32), 0.80 | 30.2 | 95.1% | 73.0% | 85.7% |
+| **v2 (fp32), 0.70 (deployed)** | **59.4** | **97.5%** | **80.2%** | **93.9%** |
+| v2 (int8), 0.70 | 58.3 | 97.5% | 79.9% | 89.8% |
+
+The deployed setting trades more false wakes on this dense-speech stream for recall (the old model had 0 of
+10 false wakes in the live run). fp32 is deployed because int8 loses recall on the real takes.
+
 ## Status
 
-Training of the DS-CNN wake model is in progress; its tune results, the chosen threshold and the injected
-benchmark run will be added here.
+Deployed on the Pi (`config/runtime.yaml`: `models/wake/vcm_wake_v2.onnx`, threshold 0.70). The injected
+benchmark run with room noise is next.

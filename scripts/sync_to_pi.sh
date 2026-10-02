@@ -8,7 +8,7 @@
 #   USE_TAR=1 scripts/sync_to_pi.sh          # tar-over-ssh instead of rsync (no rsync on one side)
 #
 # Nothing on the Pi is ever deleted (no --delete): its .venv, runtime_logs/ and config/spotify.json survive a sync.
-# Excluded: data/, exp/, .venv, results/runs, runtime_logs, checkpoints (models/ckpt), .git, caches.
+# Excluded: data/, exp/, logs/, .venv, .venv-piper, results/runs, runtime_logs, checkpoints (models/ckpt), .git, caches.
 # models/ ships the command ensemble (fp32 + int8) and the wake models; reply clips from replies/ go along.
 set -euo pipefail
 
@@ -28,8 +28,8 @@ done
 cd "$(dirname "$0")/.."
 
 EXCLUDES=(
-  --exclude='.git/' --exclude='.venv/' --exclude='__pycache__/' --exclude='*.pyc' --exclude='.pytest_cache/'
-  --exclude='/data/' --exclude='/exp/' --exclude='/results/runs/' --exclude='/runtime_logs/'
+  --exclude='.git/' --exclude='.venv/' --exclude='/.venv-piper/' --exclude='__pycache__/' --exclude='*.pyc' --exclude='.pytest_cache/'
+  --exclude='/data/' --exclude='/exp/' --exclude='/logs/' --exclude='/results/runs/' --exclude='/runtime_logs/'
   --exclude='/models/ckpt/' --exclude='*.pt' --exclude='*.egg-info/' --exclude='.DS_Store'
   --exclude='/replies/_samples/' --exclude='/runtime/sounds/'
 )

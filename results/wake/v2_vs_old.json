@@ -1,0 +1,98 @@
+{
+ "exp/wake/ds_cnn_64/wake.onnx": {
+  "at": {
+   "threshold": 0.7,
+   "fa_per_hour": 59.37424586072351,
+   "recall_clean": 0.9751166407465007,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.8017107309486781,
+   "recall_channel_real": 0.9387755102040817
+  },
+  "budget_pick": {
+   "threshold": 0.981,
+   "fa_per_hour": 0.560134394912486,
+   "recall_clean": 0.6741835147744946,
+   "recall_clean_real": 0.7346938775510204,
+   "recall_channel": 0.3055987558320373,
+   "recall_channel_real": 0.6122448979591837
+  },
+  "recall_by_source": {
+   "bench_takes": {
+    "clean": 1.0,
+    "channel": 0.7777777777777778
+   },
+   "own_wake_old": {
+    "clean": 1.0,
+    "channel": 0.975
+   },
+   "piper": {
+    "clean": 0.9741309620048505,
+    "channel": 0.7962813257881972
+   }
+  }
+ },
+ "exp/wake/ds_cnn_64/wake_int8.onnx": {
+  "at": {
+   "threshold": 0.7,
+   "fa_per_hour": 58.25397707089854,
+   "recall_clean": 0.9751166407465007,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.7986003110419907,
+   "recall_channel_real": 0.8979591836734694
+  },
+  "budget_pick": {
+   "threshold": 0.988,
+   "fa_per_hour": 0.560134394912486,
+   "recall_clean": 0.5660964230171073,
+   "recall_clean_real": 0.6530612244897959,
+   "recall_channel": 0.20373250388802489,
+   "recall_channel_real": 0.4897959183673469
+  },
+  "recall_by_source": {
+   "bench_takes": {
+    "clean": 1.0,
+    "channel": 0.6666666666666666
+   },
+   "own_wake_old": {
+    "clean": 1.0,
+    "channel": 0.95
+   },
+   "piper": {
+    "clean": 0.9741309620048505,
+    "channel": 0.7946645109135004
+   }
+  }
+ },
+ "models/wake/vcm_wake_int8.onnx": {
+  "at": {
+   "threshold": 0.55,
+   "fa_per_hour": 13.443225477899663,
+   "recall_clean": 0.9650077760497667,
+   "recall_clean_real": 1.0,
+   "recall_channel": 0.5318818040435459,
+   "recall_channel_real": 0.7346938775510204
+  },
+  "budget_pick": {
+   "threshold": 0.8,
+   "fa_per_hour": 0.560134394912486,
+   "recall_clean": 0.8779160186625194,
+   "recall_clean_real": 0.8163265306122449,
+   "recall_channel": 0.26283048211508553,
+   "recall_channel_real": 0.40816326530612246
+  },
+  "recall_by_source": {
+   "bench_takes": {
+    "clean": 1.0,
+    "channel": 0.5555555555555556
+   },
+   "own_wake_old": {
+    "clean": 1.0,
+    "channel": 0.775
+   },
+   "piper": {
+    "clean": 0.9636216653193209,
+    "channel": 0.5238480194017785
+   }
+  }
+ }
+}
