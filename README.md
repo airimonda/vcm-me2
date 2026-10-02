@@ -33,6 +33,22 @@ Single model (294,246 parameters): 0.9354 / 0.7738 real-voice / OOS false accept
 same recipe: 0.8610. int8 ensemble: 0.9400. The real-voice gap, the test-split handling and other limits are in the
 paper. On a Raspberry Pi 4 the fp32 ensemble takes 89 ms per 5-s window on one core (56 ms on two); int8 is not faster there (`results/bench_pi4.json`).
 
+**Results by split** (released fp32 ensemble, tau 0.40; "accuracy" = command and slot both right):
+
+| Split | Speakers | Clips | Accuracy | Command acc. | Human voices | Synthetic voices | Out of scope accepted | In scope rejected |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Train (fitted on) | seen in training | 9,180 | 99.0% | 99.1% | 96.7% (1,872) | 99.6% (7,150) | 0.0% (0 of 242) | 0.7% |
+| Tune (validation) | unseen | 1,553 | 91.6% | 92.4% | 68.4% (329) | 97.9% (1,224) | 7.1% (2 of 28) | 5.7% |
+| Test | unseen | 4,443 | 94.3% | 94.6% | 73.8% (824) | 98.9% (3,619) | 9.2% (7 of 76) | 4.0% |
+| Holdout, live on the Pi | unseen | 196 + 10 | 90.3% * | 90.8% * | 81.2% / 82.3% * (96) | 99.0% (100) | 20% (2 of 10) | 7.0% |
+
+\* Holdout runs the whole assistant on the Pi (wake word, capture, model), so its numbers include wake-word misses;
+"accuracy" there is the benchmark's 93-command accuracy and "command acc." its 19-intent accuracy; human column:
+command / intent. Train, tune and test: `results/final/vcm_conformer_M_ens3_{fit,tune,test}/metrics.json` (human
+and synthetic counts leave out clips with no voice flag); holdout: `results/pi_holdout/`. Tune chose every setting
+after the architecture bake-off, so it is not an independent estimate; the train-to-test gap on human voices
+(96.7% vs 73.8%) is the main weakness.
+
 **Live on a Raspberry Pi 4** (class benchmark, holdout split, 196 + 10 trials, injected audio with air-conditioner
 noise at 10 dB, wake model v2): intent accuracy 90.8% (real voices 82.3%, synthetic 99.0%), wake word detected in
 99.0% of trials, 2 of 10 out-of-scope clips accepted, 1 false wake in 10, latency p95 1.72 s, inference 76 ms

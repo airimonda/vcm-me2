@@ -119,11 +119,14 @@ def check_final(*splits, final_test: bool = False):
 
 
 def open_split(pack_dir, split: str, max_clips=None, tune_split=None) -> PackedSplit:
-    """PackedSplit for a pack split, or for `tune` / `neg_tune` (subset of train / neg_train, tune_split.json)."""
-    if split in ("tune", "neg_tune"):
+    """PackedSplit for a pack split, or for `tune` / `neg_tune` / `fit` (subsets of train / neg_train listed in
+    tune_split.json; `fit` = the train clips the final models were fitted on, i.e. train minus tune)."""
+    if split in ("tune", "neg_tune", "fit"):
         t = load_tune_split(tune_split or Path(pack_dir) / "tune_split.json")
         if split == "tune":
             return PackedSplit(pack_dir, "train", max_clips=max_clips, indices=t["tune_train_idx"])
+        if split == "fit":
+            return PackedSplit(pack_dir, "train", max_clips=max_clips, indices=t["train_idx"])
         return PackedSplit(pack_dir, "neg_train", max_clips=max_clips, indices=t["neg_tune_idx"])
     return PackedSplit(pack_dir, split, max_clips=max_clips)
 
@@ -291,7 +294,7 @@ def evaluate_model(model_path, pack_dir, split="tune", tau=0.0, max_clips=None, 
                    sweep=False, batch_size=32, progress=True, max_oos_fa=None, tau_table=False,
                    neg_split=None, tune_split=None, final_test=False):
     if neg_split is None:                              # neg_tune next to tune, neg_test next to the gold splits
-        neg_split = "neg_tune" if split in ("tune", "train") else "neg_test"
+        neg_split = {"tune": "neg_tune", "train": "neg_tune", "fit": "neg_train"}.get(split, "neg_test")
     check_final(split, neg_split if tau_table else None, final_test=final_test)
     ds = open_split(pack_dir, split, max_clips, tune_split)
     predict = make_predictor(model_path, device)
@@ -340,7 +343,7 @@ def main():
     ap.add_argument("--model", required=True, help=".pt or .onnx")
     ap.add_argument("--pack", default="data/packs")
     ap.add_argument("--split", default="tune",
-                    choices=["tune", "neg_tune", "tune_oos", "train", "neg_train", "test", "holdout", "neg_test"])
+                    choices=["fit", "tune", "neg_tune", "tune_oos", "train", "neg_train", "test", "holdout", "neg_test"])
     ap.add_argument("--tune-split", default=None, help="tune_split.json (default <pack>/tune_split.json)")
     ap.add_argument("--final-test", action="store_true",
                     help="required to score the gold test / holdout (and neg_test) splits; final report only")
