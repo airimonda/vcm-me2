@@ -33,6 +33,12 @@ Single model (294,246 parameters): 0.9354 / 0.7738 real-voice / OOS false accept
 same recipe: 0.8610. int8 ensemble: 0.9400. The real-voice gap, the test-split handling and other limits are in the
 paper. On a Raspberry Pi 4 the fp32 ensemble takes 89 ms per 5-s window on one core (56 ms on two); int8 is not faster there (`results/bench_pi4.json`).
 
+**Live on a Raspberry Pi 4** (class benchmark, holdout split, 196 + 10 trials, injected audio with air-conditioner
+noise at 10 dB, wake model v2): intent accuracy 90.8% (real voices 82.3%, synthetic 99.0%), wake word detected in
+99.0% of trials, 2 of 10 out-of-scope clips accepted, 1 false wake in 10, latency p95 1.72 s, inference 76 ms
+(RTF 0.015). The first run with a loudspeaker and the old wake model reached 46.9%, limited by the wake word. See
+`docs/paper.md` Section 8.x and `results/pi_holdout/`.
+
 ## Documentation
 
 * [`docs/paper.md`](docs/paper.md) - the full write-up: task, data, model, training, evaluation protocol, experiments, deployment, limitations, reproduction.

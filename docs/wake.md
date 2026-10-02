@@ -113,5 +113,8 @@ The deployed setting trades more false wakes on this dense-speech stream for rec
 
 ## Status
 
-Deployed on the Pi (`config/runtime.yaml`: `models/wake/vcm_wake_v2.onnx`, threshold 0.70). The injected
-benchmark run with room noise is next.
+Deployed on the Pi (`config/runtime.yaml`: `models/wake/vcm_wake_v2.onnx`, threshold 0.70). In the injected
+holdout run with air-conditioner noise at 10 dB SNR (`results/pi_holdout/20261002-225814_inject_aircon_wake_v2`)
+the wake word was detected in 194 of 196 trials (99.0%; real 97.9%, synthetic 100%), against 48.0% in the
+first, loudspeaker run with the old model; 1 of the 10 trials without the wake word fired. The two runs differ
+in the audio path as well as the wake model (`docs/paper.md` Section 8.x).

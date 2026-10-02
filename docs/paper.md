@@ -615,14 +615,48 @@ All four variants run far faster than real time: the released ensemble needs 89 
 
 ---
 
-### 8.x Live test on the Raspberry Pi and the wake word
+### 8.x Live test on the Raspberry Pi (holdout)
 
-The first live run of the class benchmark on the holdout set (laptop loudspeaker about 1 m from the Pi; 196
-trials with the wake word, 10 without; run `20261002-182511`) reached 46.9% intent accuracy. In all 102 failed
-trials the wake word was not detected; when it was (94 trials), the command was right 86 times (38 of 46 human, 48 of 48 synthetic), slots were
-100% exact, and there were no false accepts (0 of 10) or false wakes (0 of 10). Mean inference was 69 ms per
-window (RTF 0.014). The wake model, not the command model, limits the live result; it is being rebuilt, see
-`docs/wake.md`.
+**How the Pi was tested.** The holdout split, as served by the benchmark from the Hugging Face dataset (196
+clips: 186 commands over the 93 phrasings, 10 out-of-scope), was run through the class benchmark, [`vcm-benchmark`](https://github.com/airimonda/vcm-benchmark), against the
+full runtime on the Raspberry Pi 4 (wake word, capture and endpointing, command model, dispatcher). The laptop
+builds one trial per clip: a recorded "Watson" take, a 0.8 s pause, then the holdout command. It adds 10 commands
+without the wake word (false-wake check) and shuffles all 206 trials with a seed. Trials are spaced 10-15 s
+apart (the benchmark's default gap). The runtime writes
+one JSON line per decision to `logs/live.log`, which the benchmark reads over SSH while sampling the Pi's
+CPU, RAM, clock, temperature and throttling once per second.
+
+**Benchmarks reported.** Intent accuracy (19 intents + reject) and command accuracy (93 phrasings + reject),
+balanced accuracy, macro precision / recall / F1 / F2, out-of-scope false accept, in-scope false reject, misfire
+(wrong command fired), false wake (fired without the wake word), slot exact match, response latency (end of the
+command audio to the Pi's log line), inference time and real-time factor (inference / 5 s window), all
+overall and separately for real and synthetic voices. Offline latency of the command model alone is measured
+by `scripts/bench_onnx.py` (Section 8, `results/bench_pi4.json`).
+
+**Two runs** (`results/pi_holdout/`):
+
+| | Run 1: loudspeaker, wake model v1 | Run 2: injected audio + aircon noise, wake model v2 |
+| --- | ---: | ---: |
+| Audio path | laptop speaker ~1 m → Pi mic | posted to the runtime's `/inject`, air-conditioner noise (MS-SNSD) at 10 dB SNR |
+| Wake model, threshold | v1 int8, 0.55 | v2 fp32, 0.70 (`docs/wake.md`) |
+| Wake word detected | 48.0% | 99.0% |
+| Intent accuracy, overall / real / synthetic | 46.9 / 45.8 / 48.0% | 90.8 / 82.3 / 99.0% |
+| Command accuracy (93), overall | 46.9% | 90.3% |
+| Correct once woken, overall / real / synthetic | 86/94 / 38/46 / 48/48 | 178/194 / 79/94 / 99/100 |
+| Macro F1 (19 intents), overall / real / synthetic | 56.3 / 44.6 / 64.1% | 90.2 / 82.4 / 98.9% |
+| Out-of-scope accepted | 0 of 10 | 2 of 10 |
+| In-scope false reject | 54.3% | 7.0% (real 14.0%, synthetic 1.0%) |
+| Misfire (wrong command) | 1.6% | 1.6% |
+| False wake (no wake word) | 0 of 10 | 1 of 10 (answered "out of scope") |
+| Slot exact (intent right) | 100% (n = 47) | 99.0% (n = 103) |
+| Latency p50 / p95 | 1.16 / 1.66 s | 1.45 / 1.72 s |
+| Inference mean / p95, RTF mean | 69 / 101 ms, 0.014 | 76 / 107 ms, 0.015 |
+| CPU (whole Pi) mean, RAM used, max temperature | 11.4%, 538 MB, 55.0 °C | 12.0%, 560 MB, 51.1 °C |
+
+In run 1 every miss was a missed wake word. Run 2 changes two things at once (the wake model and the audio path:
+no loudspeaker or room acoustics, but stationary noise), so its gain cannot be attributed to the wake model
+alone. In run 2, 11 of the 16 in-scope errors are real-voice commands rejected as out of scope, the same
+real-versus-synthetic gap as on test (Section 7e).
 
 ## 9 Limitations
 

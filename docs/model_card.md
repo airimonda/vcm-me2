@@ -47,7 +47,7 @@ Ensemble fp32 by voice type: clip accuracy 0.9895 on synthetic voices (3,619 cli
 
 * Real-voice variation balanced accuracy is 0.7727, against 0.9431 over all clips; the test set is about 81% synthetic speech.
 * 9.2% of out-of-scope test clips (7 of 76) are accepted as commands; babble (20%) and truncated commands (10%) are the weakest negatives. The threshold was tuned on data with no Filipino-accented out-of-scope speech, while 14 of the 76 test out-of-scope clips (18%) are Filipino-accented Common Voice speech.
-* The test split was used to pick the architecture (bake-off rounds 1 and 2) and was scored more than once in the final evaluation (single model first, then the ensemble, plus int8 and baseline variants). The holdout split has not been used.
+* The test split was used to pick the architecture (bake-off rounds 1 and 2) and was scored more than once in the final evaluation (single model first, then the ensemble, plus int8 and baseline variants). The holdout split was used only for the live test on the Raspberry Pi (`docs/paper.md` Section 8.x).
 * int8 costs the ensemble about 0.3 points of variation balanced accuracy and 0.9 points of real-voice score (sign test p = 0.016).
 * Input must be a 5-second window. Evaluation clips were speech-trimmed and centred by an offline step that is not part of the model; streaming behaviour is untested.
 * Intended for English commands from the fixed phrase list (`configs/variations.csv`). Other phrasings and languages are not evaluated.
