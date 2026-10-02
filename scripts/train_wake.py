@@ -8,8 +8,8 @@ Training windows (built per batch from data/wake/train.npz + the command packs a
   positives  the whole "Watson" inside the window at a random place; clips that run on into a command
              have "Watson" start 0.05-0.6 s into the window
   negatives  random crops of Piper look-alikes, real speech (CommonVoice / SLURP / SNIPS / ...), your
-             recorded talk and confusables, room noise, the command dataset (train pack) and its
-             synthetic negatives, near-silence
+             recorded talk and confusables, room noise, the command dataset's TRAIN rows (train_idx /
+             neg_train_idx of tune_split.json: VCM validation, test and holdout are never read), near-silence
 Augmentation, on the GPU, for every class alike (so the channel never tells the classes apart):
   playback chain  a small loudspeaker (high-pass 120-500 Hz, low-pass 3.5-9 kHz, 1-3 resonances, soft
                   clipping): the benchmark plays your "Watson" from a laptop speaker into the Pi mic
@@ -17,8 +17,8 @@ Augmentation, on the GPU, for every class alike (so the channel never tells the 
                   quantisation, clipping, gain, polarity
   music bed       synthetic chords + drums at 0-20 dB SNR (music playing while you say the wake word)
   SpecAugment     on the log-mel map
-Selection (data/wake/tune.npz: Piper held-out voices, your earlier "Watson" takes, the benchmark takes,
-real held-out speech): every epoch, the clip-level recall (any 0.25 s-hop window >= threshold, as the
+Selection (data/wake/tune.npz: Piper held-out voices (positives only), your earlier "Watson" takes, the
+benchmark takes, real held-out speech; no synthetic negatives): every epoch, the clip-level recall (any 0.25 s-hop window >= threshold, as the
 runtime fires) at the lowest threshold whose false wakes per hour on the tune negative stream are within a
 budget, averaged over budgets of 0.5x, 1x, 2x and 4x --fa-budget (a partial-ROC area). Recall = mean of
 clean clips and a fixed (seeded) playback-chain + noise version, half from Piper and half from your real
@@ -330,6 +330,7 @@ def main():
     ap.add_argument("--packs", nargs="*", default=[str(ROOT / "data/packs/train_audio.npy"),
                                                     str(ROOT / "data/packs/neg_train_audio.npy")])
     ap.add_argument("--noise", default=str(ROOT / "data/packs/noise.npz"))
+    ap.add_argument("--split-json", default=str(ROOT / "data/packs/tune_split.json"))
     ap.add_argument("--out", required=True)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--batch", type=int, default=256)
@@ -343,6 +344,7 @@ def main():
     ap.add_argument("--pos-weight", type=float, default=2.0, help="loss weight on WATSON (recall)")
     ap.add_argument("--fa-budget", type=float, default=1.0, help="false wakes per hour allowed on the tune stream")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--resume", action="store_true", help="continue the run in --out (last.pt, else best.pt weights)")
     ap.add_argument("--threads", type=int, default=4, help="CPU threads (several runs share one box)")
     a = ap.parse_args()
     torch.manual_seed(a.seed)
@@ -362,8 +364,16 @@ def main():
     print(f"{a.arch} {cfg} params={n_params}", flush=True)
 
     tr, tu = Clips(Path(a.data) / "train.npz"), Clips(Path(a.data) / "tune.npz")
-    packs = [np.load(p, mmap_mode="r") for p in a.packs if Path(p).exists()]
-    packs = [np.ascontiguousarray(p) for p in packs]
+    # command packs: TRAIN rows only (the VCM validation rows in tune_split.json are never read)
+    split = json.load(open(a.split_json))
+    rows = {"train_audio": split["train_idx"], "neg_train_audio": split["neg_train_idx"]}
+    packs = []
+    for p in a.packs:
+        if Path(p).exists():
+            stem = Path(p).stem
+            if stem not in rows:
+                raise SystemExit(f"{p}: only train_audio / neg_train_audio packs are allowed")
+            packs.append(np.ascontiguousarray(np.load(p, mmap_mode="r")[np.sort(rows[stem])]))
     print(f"train clips {len(tr)} (+{sum(len(p) for p in packs)} pack rows); packs: {[p.shape for p in packs]}",
           flush=True)
     nb = NoiseBank(a.noise, device=dev) if Path(a.noise).exists() else None
@@ -376,8 +386,26 @@ def main():
     total = a.max_epochs * a.steps
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=a.lr, total_steps=total, pct_start=0.1)
     cw = torch.tensor([a.pos_weight, 1.0], device=dev)
-    best, best_ep, log = -1.0, 0, open(out / "log.jsonl", "w")
-    for ep in range(1, a.max_epochs + 1):
+    best, best_ep, start = -1.0, 0, 1
+    if a.resume and (out / "last.pt").exists():            # full state: continue exactly
+        ck = torch.load(out / "last.pt", map_location=dev, weights_only=False)
+        model.load_state_dict(ck["model"])
+        opt.load_state_dict(ck["opt"])
+        sched.load_state_dict(ck["sched"])
+        best, best_ep, start = ck["best"], ck["best_ep"], ck["epoch"] + 1
+        sampler.rng = np.random.default_rng(a.seed + ck["epoch"])
+        print(f"resumed from last.pt: epoch {ck['epoch']}, best {best:.4f} @ {best_ep}", flush=True)
+    elif a.resume and (out / "best.pt").exists():          # weights only (runs from before last.pt existed)
+        ck = torch.load(out / "best.pt", map_location=dev)
+        model.load_state_dict(ck["model"])
+        start = ck["epoch"] + 1
+        for _ in range(ck["epoch"] * a.steps):             # learning-rate schedule where that run was
+            sched.step()
+        sampler.rng = np.random.default_rng(a.seed + ck["epoch"])
+        print(f"resumed weights from best.pt (epoch {ck['epoch']}); optimizer state starts fresh; "
+              f"best score is re-measured on the current tune set", flush=True)
+    log = open(out / "log.jsonl", "a" if a.resume else "w")
+    for ep in range(start, a.max_epochs + 1):
         t0, tot = time.time(), 0.0
         model.train()
         for _ in range(a.steps):
@@ -402,7 +430,9 @@ def main():
         if score > best:
             best, best_ep = score, ep
             torch.save({"model": model.state_dict(), "arch": a.arch, "cfg": cfg, "epoch": ep}, out / "best.pt")
-        elif ep >= a.min_epochs and ep - best_ep >= a.patience:
+        torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
+                    "epoch": ep, "best": best, "best_ep": best_ep}, out / "last.pt")
+        if score < best and ep >= a.min_epochs and ep - best_ep >= a.patience:
             print(f"early stop at {ep} (best {best:.4f} @ {best_ep})", flush=True)
             break
 

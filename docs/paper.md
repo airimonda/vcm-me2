@@ -615,6 +615,15 @@ All four variants run far faster than real time: the released ensemble needs 89 
 
 ---
 
+### 8.x Live test on the Raspberry Pi and the wake word
+
+The first live run of the class benchmark on the holdout set (laptop loudspeaker about 1 m from the Pi; 196
+trials with the wake word, 10 without; run `20261002-182511`) reached 46.9% intent accuracy. In all 102 failed
+trials the wake word was not detected; when it was (94 trials), the command was right 92 times, slots were
+100% exact, and there were no false accepts (0 of 10) or false wakes (0 of 10). Mean inference was 69 ms per
+window (RTF 0.014). The wake model, not the command model, limits the live result; it is being rebuilt, see
+`docs/wake.md`.
+
 ## 9 Limitations
 
 1. **Real-voice gap.** On test, the balanced metric is 0.9431 over all clips but 0.7727 on real voices only, and clip accuracy is 0.7379 on real voices against 0.9895 on synthetic ones. About 78% of the training clips are synthetic, and the test set is also mostly synthetic (3,619 of 4,443), so the headline number is dominated by easy clips. The real-voice score is the more honest estimate of field performance, and it is much lower.

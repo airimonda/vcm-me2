@@ -92,7 +92,7 @@ Everything has a default in `runtime/config.py`; the YAML only needs the keys yo
 ```
 .venv/bin/python scripts/pi_runtime.py [--config F] [--mock all|none|light,aircon,spotify] [--no-ui] [--port N]
     [--input-wav WAV|DIR ...] [--use-wake] [--realtime] [--keep-open] [--no-mic] [--silent] [--fresh-state]
-    [--model ONNX] [--tau X] [--wake-model ONNX] [--wake-threshold X] [--metrics-dir D] [--json]
+    [--model ONNX] [--tau X] [--wake-model ONNX] [--wake-threshold X] [--metrics-dir D] [--json] [--inject]
 pkill -f "[s]cripts/pi_runtime.py"      # stop a running instance (the bracket keeps pkill from matching itself)
 ```
 
@@ -101,6 +101,11 @@ pkill -f "[s]cripts/pi_runtime.py"      # stop a running instance (the bracket k
   stream instead (the file must contain "Watson ..."). `--realtime` paces the file; file replays are silent
   and have no dashboard unless `--realtime` or `--keep-open`.
 * `--no-mic` = dashboard and its test buttons only.
+* `--inject` accepts a WAV POSTed to `/inject` on the dashboard port and feeds it to the live pipeline in place of
+  the microphone signal (`runtime/audio.py` `InjectSource`): one block per mic block, so it plays out in real
+  time, and blocks dropped while the runtime was busy still advance it. Used by `vcm-benchmark --inject` to run
+  the holdout benchmark without a loudspeaker (see `docs/wake.md`). Off by default (`audio.inject: false`):
+  while it is on, anyone who can reach the port can feed audio to the assistant.
 
 Example (Mac, no hardware):
 

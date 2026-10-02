@@ -10,13 +10,18 @@
     src     str: where the clip came from (for the report)
 
 Sources (train / tune):
-  Piper (scripts/gen_piper.py --templates wake): its train / dev split (dev = held-out voices)
+  Piper (scripts/gen_piper.py --templates wake): its train / dev split (dev = held-out voices); Piper
+      negatives always go to train: the tune set holds no synthetic negatives
   your recorder sessions data/wake_rec/<session>/: train, except sessions named in --tune-sessions
   the earlier "Watson" recordings (ai231-me2-voice-data/recordings/ailene_wake: 40 WAKE + 20 NOT_WAKE)
       and the vcm-benchmark wake takes (vcm-benchmark/runs/*/wake): tune only
   the earlier project's real speech negatives (CommonVoice / SpeechCommands / SLURP / own recordings,
       from its wake manifest, files that still exist): its train / dev+own split, capped
-The command dataset (packs on the training box) is added as more negatives by train_wake.py.
+The command dataset (packs on the training box) is added as more negatives by train_wake.py, train rows only.
+
+The VCM test, holdout and validation (tune) sets are never touched: old real negatives whose dataset +
+normalised transcript (or CommonVoice speaker) appears in the VCM test / holdout / tune / tune_oos metadata
+(--exclude-dir: copies of data/packs/*_meta.parquet + tune_split.json) are dropped.
 
   .venv/bin/python scripts/build_wake_set.py --tune-sessions mac2
 """
@@ -40,6 +45,26 @@ def load(path, max_s):
         import soxr
         x = soxr.resample(x, sr, SR)
     return x[: int(max_s * SR)]
+
+
+def norm_text(t):
+    return " ".join("".join(c if c.isalnum() else " " for c in str(t).lower()).split())
+
+
+FAMILY = {"SNIPS_SmartLights": "SNIPS"}
+
+
+def excluded_keys(d):
+    """(dataset, transcript) and CommonVoice speakers of every VCM test / holdout / validation clip."""
+    import json
+    metas = [pd.read_parquet(os.path.join(d, f)) for f in ("test_meta.parquet", "holdout_meta.parquet",
+                                                           "tune_oos_meta.parquet")]
+    tr = pd.read_parquet(os.path.join(d, "train_meta.parquet"))
+    metas.append(tr.iloc[json.load(open(os.path.join(d, "tune_split.json")))["tune_train_idx"]])
+    m = pd.concat(metas)
+    texts = {(r.source, norm_text(r.transcript)) for r in m.itertuples()}
+    cv = set(m[m.source == "CommonVoice_en"].speaker_id.astype(str))
+    return texts, cv
 
 
 def span(x, hop=320):
@@ -88,6 +113,7 @@ def main():
     ap.add_argument("--old-wake", default=os.path.join(HOME, "ai231-me2-voice-data/recordings/ailene_wake"))
     ap.add_argument("--bench-runs", default=os.path.join(HOME, "vcm-benchmark/runs"))
     ap.add_argument("--old-manifest", default=os.path.join(HOME, "voice-dataset-analysis/manifests/wake_labeled.csv"))
+    ap.add_argument("--exclude-dir", default=os.path.join(ROOT, "data/wake/exclude"))
     ap.add_argument("--max-real-neg", type=int, default=12000, help="cap on the old real negatives (train)")
     ap.add_argument("--max-s", type=float, default=6.0)
     ap.add_argument("--out", default=os.path.join(ROOT, "data/wake"))
@@ -96,7 +122,7 @@ def main():
 
     p = pd.read_csv(a.piper)
     for r in p.itertuples():
-        pk = tu if r.split == "dev" else tr
+        pk = tu if r.split == "dev" and r.label == "WATSON" else tr
         lead = int(r.label == "WATSON" and "," in str(r.transcript_normalized) or
                    (r.label == "WATSON" and len(str(r.transcript_normalized).split()) > 2))
         pk.add(load(r.audio_path, a.max_s), int(r.label == "WATSON"), "piper", 0, lead)
@@ -122,6 +148,12 @@ def main():
     om = pd.read_csv(a.old_manifest)
     om = om[(om.label == "OTHER")]
     om = om[om.audio_path.map(os.path.exists)]
+    texts, cv = excluded_keys(a.exclude_dir)
+    hit = [(FAMILY.get(r.dataset, r.dataset), norm_text(r.transcript_normalized)) in texts or
+           (r.dataset == "CommonVoice_en" and str(r.speaker_id) in cv) for r in om.itertuples()]
+    print(f"old real negatives: dropped {sum(hit)} of {len(om)} that match a VCM test / holdout / tune clip "
+          f"(dataset + transcript, or CommonVoice speaker)")
+    om = om[~np.array(hit)]
     otr = om[om.split == "train"].sample(frac=1, random_state=0).head(a.max_real_neg)
     otu = om[om.split.isin(["dev", "own"]) & (om.dataset != "own_wake")]   # own_wake = the old_wake folder
     for d, pk in ((otr, tr), (otu, tu)):

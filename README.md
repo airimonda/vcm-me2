@@ -38,6 +38,7 @@ paper. On a Raspberry Pi 4 the fp32 ensemble takes 89 ms per 5-s window on one c
 * [`docs/paper.md`](docs/paper.md) - the full write-up: task, data, model, training, evaluation protocol, experiments, deployment, limitations, reproduction.
 * [`docs/model_card.md`](docs/model_card.md) - one-page model card.
 * [`docs/runtime.md`](docs/runtime.md) - the on-device runtime: wake word, capture, Spotify / light / thermostat / timers, dashboard, Pi setup, metrics.
+* [`docs/wake.md`](docs/wake.md) - the "Watson" wake word: why it was rebuilt after the first live run, data, training, tuning for high recall, validation on the Pi.
 * Figures: `docs/figures/` (made by `scripts/make_figures.py` from `results/`; needs matplotlib).
 
 Dataset: [`airimonda/ai231-me2-voice-commands`](https://huggingface.co/datasets/airimonda/ai231-me2-voice-commands) on the Hugging Face Hub (default config `train` / `test` / `holdout`; config `synthetic_negatives`).
