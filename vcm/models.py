@@ -372,6 +372,27 @@ class FullModel(nn.Module):
         return self.vcm(self.frontend(wav))
 
 
+class EnsembleModel(nn.Module):
+    """Average of several FullModels' probabilities with one shared front end.
+
+    Outputs log(mean softmax) for the command and slot heads. These are valid logits:
+    softmax(log p) = p, so eval, tau and export treat the ensemble like a single model."""
+
+    def __init__(self, members: list[FullModel]):
+        super().__init__()
+        self.frontend = members[0].frontend
+        self.members = nn.ModuleList([m.vcm for m in members])
+        self.arch = "ensemble(" + ",".join(m.arch for m in members) + ")"
+        self.tier = members[0].tier
+
+    def forward(self, wav):
+        f = self.frontend(wav)
+        cs, ss = zip(*(m(f) for m in self.members))
+        c = torch.stack([F.softmax(x, -1) for x in cs]).mean(0)
+        s = torch.stack([F.softmax(x, -1) for x in ss]).mean(0)
+        return torch.log(c.clamp_min(1e-12)), torch.log(s.clamp_min(1e-12))
+
+
 def count_params(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 

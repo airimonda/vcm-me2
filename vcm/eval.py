@@ -53,7 +53,12 @@ def pick_device(name: str = "auto") -> torch.device:
 
 
 def load_torch_model(path: str, device="cpu"):
+    """`a.pt+b.pt+c.pt` loads a probability-averaging ensemble of the checkpoints."""
     from .models import build_model
+    if "+" in str(path):
+        from .models import EnsembleModel
+        parts = [load_torch_model(p, "cpu") for p in str(path).split("+")]
+        return EnsembleModel([m for m, _ in parts]).to(device).eval(), parts[0][1]
     ck = torch.load(path, map_location="cpu", weights_only=False)
     m = build_model(ck["arch"], ck["tier"], **ck.get("overrides", {}))
     m.load_state_dict(ck["model"])
@@ -335,7 +340,7 @@ def main():
     ap.add_argument("--model", required=True, help=".pt or .onnx")
     ap.add_argument("--pack", default="data/packs")
     ap.add_argument("--split", default="tune",
-                    choices=["tune", "neg_tune", "train", "neg_train", "test", "holdout", "neg_test"])
+                    choices=["tune", "neg_tune", "tune_oos", "train", "neg_train", "test", "holdout", "neg_test"])
     ap.add_argument("--tune-split", default=None, help="tune_split.json (default <pack>/tune_split.json)")
     ap.add_argument("--final-test", action="store_true",
                     help="required to score the gold test / holdout (and neg_test) splits; final report only")

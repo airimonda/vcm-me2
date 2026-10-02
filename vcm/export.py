@@ -54,6 +54,11 @@ def sidecar(model: FullModel, tau: float, extra: dict | None = None) -> dict:
 
 
 def load_ckpt(path: str) -> tuple[FullModel, dict]:
+    """`a.pt+b.pt+c.pt` builds a probability-averaging ensemble (one ONNX graph, shared front end)."""
+    if "+" in path:
+        from .models import EnsembleModel
+        parts = [load_ckpt(p) for p in path.split("+")]
+        return EnsembleModel([m for m, _ in parts]).eval(), parts[0][1]
     ck = torch.load(path, map_location="cpu", weights_only=False)
     m = FullModel(ck["arch"], ck["tier"], **ck.get("overrides", {}))
     m.load_state_dict(ck["model"])
