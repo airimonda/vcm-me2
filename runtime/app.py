@@ -114,12 +114,14 @@ class Runtime:
         self._tasks.append(asyncio.ensure_future(self.metrics.sampler_loop(bus=self.bus, is_playing=self.music.is_playing)))
         self._tasks.append(asyncio.ensure_future(self.inbound_loop()))
         self.ui_runner = None
+        self.inject_source = getattr(self, "inject_source", None)
         if ui and self.cfg["ui"]["enabled"]:
             try:
                 from runtime.ui_server import start_ui_server
                 u = self.cfg["ui"]
+                inject = (lambda: self.inject_source) if self.cfg["audio"].get("inject") else None
                 self.ui_runner = await start_ui_server(self.bus, self.state, self.convo, self.feedback.dir,
-                                                       u["host"], port or u["port"])
+                                                       u["host"], port or u["port"], inject=inject)
                 log.info("dashboard on http://%s:%s", u["host"], port or u["port"])
             except ImportError as e:
                 log.warning("dashboard unavailable (%s); continuing without it", e)
@@ -356,6 +358,9 @@ def build_arg_parser():
     ap.add_argument("--tau", type=float, default=None, help="override the sidecar tau")
     ap.add_argument("--wake-model", default=None, help="wake word .onnx (default wake.path)")
     ap.add_argument("--wake-threshold", type=float, default=None)
+    ap.add_argument("--inject", action="store_true",
+                    help="accept WAVs POSTed to /inject on the dashboard port in place of the mic signal "
+                         "(vcm-benchmark --inject; anyone on the network can then feed audio)")
     ap.add_argument("--json", action="store_true", help="with --input-wav: print one JSON result line per file at the end")
     return ap
 
@@ -376,6 +381,8 @@ def overrides_from_args(a) -> dict:
         o.setdefault("wake", {})["path"] = a.wake_model
     if a.wake_threshold is not None:
         o.setdefault("wake", {})["threshold"] = a.wake_threshold
+    if a.inject:
+        o.setdefault("audio", {})["inject"] = True
     return o
 
 
@@ -409,6 +416,10 @@ async def amain(a) -> int:
             await asyncio.Event().wait()
         else:
             source = audio_mod.open_mic(cfg["audio"]["backend"], cfg["audio"]["device"], cfg["audio"]["block_ms"])
+            if cfg["audio"].get("inject"):
+                source = audio_mod.InjectSource(source)
+                rt.inject_source = source
+                print("audio injection ON: POST a WAV to /inject on the dashboard port (benchmark without a speaker)")
             await rt.run_stream(source, use_wake=True)
     except asyncio.CancelledError:
         pass

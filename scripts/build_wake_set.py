@@ -108,6 +108,10 @@ def main():
             for f in sorted(glob.glob(os.path.join(sess, lab, "*.wav"))):
                 lead = int(code == 1 and os.path.basename(f).startswith("lead_"))
                 pk.add(load(f, 60 if code == 2 else a.max_s), code, f"rec:{name}", 1, lead)
+        for blk in ("confusable", "talk"):                  # the whole block too: continuous speech to crop
+            f = os.path.join(sess, "raw", blk + ".wav")
+            if os.path.exists(f):
+                pk.add(load(f, 120), 0, f"rec:{name}", 1)
 
     m = pd.read_csv(os.path.join(a.old_wake, "manifest.csv"))
     for r in m.itertuples():

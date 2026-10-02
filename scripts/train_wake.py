@@ -19,9 +19,10 @@ Augmentation, on the GPU, for every class alike (so the channel never tells the 
   SpecAugment     on the log-mel map
 Selection (data/wake/tune.npz: Piper held-out voices, your earlier "Watson" takes, the benchmark takes,
 real held-out speech): every epoch, the clip-level recall (any 0.25 s-hop window >= threshold, as the
-runtime fires) at the lowest threshold whose false wakes per hour on the tune negative stream are
-<= --fa-budget. Score = mean of recall on clean clips and on a fixed (seeded) playback-chain + noise
-version. Early stop: no better score for --patience epochs (min --min-epochs).
+runtime fires) at the lowest threshold whose false wakes per hour on the tune negative stream are within a
+budget, averaged over budgets of 0.5x, 1x, 2x and 4x --fa-budget (a partial-ROC area). Recall = mean of
+clean clips and a fixed (seeded) playback-chain + noise version, half from Piper and half from your real
+takes. Early stop: no better score for --patience epochs (min --min-epochs).
 At the end: tune table over thresholds, the chosen threshold (lowest within the budget = highest recall),
 ONNX export with an onnxruntime parity check, models/wake/<name>.json sidecar.
 
@@ -53,6 +54,8 @@ PAD = 2400             # extra context each side for speed perturbation
 BUF = WIN + 2 * PAD
 HOP = 4000             # runtime scoring hop, 0.25 s
 LABELS = ["WATSON", "OTHER"]
+THRESHOLDS = np.unique(np.round(np.concatenate([np.arange(0.05, 0.951, 0.025),
+                                                1 - np.logspace(-1.3, -4, 14)]), 5))
 
 AUG = dict(speed=0.5, shift=0.0, pitch=0.25, gain=0.8, polarity=0.5, clip=0.1, eq=0.5, tel=0.1,
            quant=0.1, noise=0.7, babble=0.2, reverb=0.5, specaug=0.4, timewarp=0.0, snr=(-3, 30))
@@ -283,11 +286,23 @@ class TuneSet:
                 r[f"recall_{k}"] = float((m >= th).mean())
                 r[f"recall_{k}_real"] = float((m[self.pos_real] >= th).mean()) if self.pos_real.any() else None
             rows.append(r)
-        ok = [r for r in rows if r["fa_per_hour"] <= fa_budget]
-        pick = min(ok, key=lambda r: r["threshold"]) if ok else max(rows, key=lambda r: r["threshold"])
-        score = 0.5 * (pick["recall_clean"] + pick["recall_channel"])
-        if pick["recall_clean_real"] is not None:
-            score = 0.5 * score + 0.25 * (pick["recall_clean_real"] + pick["recall_channel_real"])
+        def at_budget(b):
+            ok = [r for r in rows if r["fa_per_hour"] <= b]
+            return min(ok, key=lambda r: r["threshold"]) if ok else None
+
+        def recall(r):
+            if r is None:
+                return 0.0
+            s = 0.5 * (r["recall_clean"] + r["recall_channel"])
+            if r["recall_clean_real"] is not None:
+                s = 0.5 * s + 0.25 * (r["recall_clean_real"] + r["recall_channel_real"])
+            return s
+
+        # score = mean recall over several false-wake budgets (a partial-ROC area), so epochs are compared
+        # at equal false-wake rates even while none reaches the target budget yet
+        score = float(np.mean([recall(at_budget(b)) for b in (fa_budget / 2, fa_budget, 2 * fa_budget,
+                                                               4 * fa_budget)]))
+        pick = at_budget(fa_budget) or min(rows, key=lambda r: (r["fa_per_hour"], -r["threshold"]))
         model.train()
         return score, pick, rows, maxp
 
@@ -320,16 +335,19 @@ def main():
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--steps", type=int, default=300, help="steps per epoch")
     ap.add_argument("--max-epochs", type=int, default=40)
-    ap.add_argument("--min-epochs", type=int, default=8)
-    ap.add_argument("--patience", type=int, default=6)
+    ap.add_argument("--min-epochs", type=int, default=15)
+    ap.add_argument("--patience", type=int, default=10)
     ap.add_argument("--lr", type=float, default=3e-3)
     ap.add_argument("--pos-frac", type=float, default=0.4)
     ap.add_argument("--pos-real-frac", type=float, default=0.3, help="share of positives from your recordings")
     ap.add_argument("--pos-weight", type=float, default=2.0, help="loss weight on WATSON (recall)")
     ap.add_argument("--fa-budget", type=float, default=1.0, help="false wakes per hour allowed on the tune stream")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--threads", type=int, default=4, help="CPU threads (several runs share one box)")
     a = ap.parse_args()
     torch.manual_seed(a.seed)
+    torch.set_num_threads(a.threads)
+    torch.backends.cudnn.benchmark = True
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     dev = a.device
@@ -352,7 +370,7 @@ def main():
     sampler = Sampler(tr, packs, a.pos_real_frac, a.seed)
     aug = Aug(dev, nb)
     tune = TuneSet(tu, dev, nb)
-    thresholds = np.round(np.arange(0.05, 0.96, 0.025), 3)
+    thresholds = THRESHOLDS
 
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-3)
     total = a.max_epochs * a.steps
@@ -365,17 +383,19 @@ def main():
         for _ in range(a.steps):
             x, y = sampler.batch(a.batch, a.pos_frac)
             x, y = aug(x), y.to(dev)
-            f = aug.base.spec(model.frontend(x))
-            loss = F.cross_entropy(model.forward_features(f), y, weight=cw, label_smoothing=0.05)
+            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev.startswith("cuda")):
+                f = aug.base.spec(model.frontend(x).float())
+                loss = F.cross_entropy(model.forward_features(f).float(), y, weight=cw, label_smoothing=0.0)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 5.0)
             opt.step()
             sched.step()
             tot += loss.item()
+        t1 = time.time()
         score, pick, _, _ = tune.score(model, thresholds, a.fa_budget)
         rec = {"epoch": ep, "loss": tot / a.steps, "score": score, **{f"at_{k}": v for k, v in pick.items()},
-               "sec": round(time.time() - t0, 1)}
+               "train_sec": round(t1 - t0, 1), "eval_sec": round(time.time() - t1, 1)}
         print(json.dumps(rec), flush=True)
         log.write(json.dumps(rec) + "\n")
         log.flush()

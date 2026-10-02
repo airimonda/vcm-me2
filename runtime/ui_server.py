@@ -16,6 +16,7 @@ import json
 import logging
 from pathlib import Path
 
+import numpy as np
 from aiohttp import WSMsgType, web
 
 LOG = logging.getLogger("ui_server")
@@ -86,12 +87,39 @@ async def no_cache(request: web.Request, handler):
     return resp
 
 
-def build_app(bus, state, convo=None, replies_dir=None) -> web.Application:
+async def inject_handler(request: web.Request) -> web.Response:
+    """POST a WAV (any rate / channels): it replaces the mic signal until it ends. Off unless the runtime
+    was started with audio.inject: true (anyone on the network could otherwise talk to the assistant)."""
+    get = request.app.get("inject")
+    src = get() if callable(get) else get
+    if src is None:
+        return web.json_response({"ok": False, "error": "injection is off (audio.inject: false)"}, status=403)
+    import io
+    import time
+
+    import soundfile as sf
+    body = await request.read()
+    try:
+        x, rate = sf.read(io.BytesIO(body), dtype="float32", always_2d=True)
+    except Exception as e:                           # not a readable WAV
+        return web.json_response({"ok": False, "error": f"bad wav: {e}"}, status=400)
+    x = x.mean(axis=1)
+    if rate != 16000:
+        n = int(round(len(x) * 16000 / rate))
+        x = np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32)
+    t = time.time()
+    dur = src.inject(x)
+    return web.json_response({"ok": True, "t": t, "duration_s": dur})
+
+
+def build_app(bus, state, convo=None, replies_dir=None, inject=None) -> web.Application:
     """Assemble the Application (separate from start_ui_server so tests can use aiohttp's test client)."""
     app = web.Application(middlewares=[no_cache])
     app["bus"], app["state"], app["convo"] = bus, state, convo
     app["latest"] = {}
+    app["inject"] = inject
     app.router.add_get("/", index_handler)
+    app.router.add_post("/inject", inject_handler)
     app.router.add_get("/ws", websocket_handler)
     app.router.add_static("/static/", UI_DIR, name="static", show_index=False)
     if convo is not None:
@@ -103,8 +131,9 @@ def build_app(bus, state, convo=None, replies_dir=None) -> web.Application:
     return app
 
 
-async def start_ui_server(bus, state, convo=None, replies_dir=None, host="0.0.0.0", port=8080) -> web.AppRunner:
-    app = build_app(bus, state, convo, replies_dir)
+async def start_ui_server(bus, state, convo=None, replies_dir=None, host="0.0.0.0", port=8080,
+                          inject=None) -> web.AppRunner:
+    app = build_app(bus, state, convo, replies_dir, inject)
     cache_queue = bus.subscribe()
 
     async def _cache_latest():

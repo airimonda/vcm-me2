@@ -3,6 +3,8 @@
 * SoundDeviceSource : PortAudio via sounddevice, default device (PipeWire echo-cancel source on the Pi).
 * ArecordSource     : `arecord` subprocess fallback when sounddevice/PortAudio is unavailable.
 * WavSource         : feeds a WAV file (testing, --input-wav); ends when the file ends.
+* InjectSource      : wraps the mic; audio posted to the dashboard's /inject endpoint replaces the mic
+                      signal block by block, in step with the mic clock (benchmark without a loudspeaker).
 
 Blocks are `block_ms` long. The callback thread hands them to the asyncio loop with call_soon_threadsafe.
 """
@@ -109,9 +111,12 @@ class _QueueSource(Source):
     async def __anext__(self):
         return await self._q.get()
 
-    def flush(self) -> None:
+    def flush(self) -> int:
+        n = 0
         while not self._q.empty():
             self._q.get_nowait()
+            n += 1
+        return n
 
 
 class SoundDeviceSource(_QueueSource):
@@ -159,6 +164,53 @@ class ArecordSource(_QueueSource):
 
     def close(self):
         self._proc.terminate()
+
+
+class InjectSource(Source):
+    """The mic, except while injected audio is pending: then each mic block is replaced by the next
+    block of the injected clip. The clip advances with the mic's own clock, also over blocks dropped by
+    flush(), so it plays out in real time just as sound from a loudspeaker would."""
+
+    def __init__(self, inner: Source):
+        self.inner = inner
+        self.block = inner.block
+        self._clip = None
+        self._pos = 0
+        self.injected = 0
+
+    def inject(self, audio: np.ndarray) -> float:
+        """queue a clip (replaces any clip still playing); returns its length in seconds"""
+        self._clip = np.asarray(audio, np.float32).reshape(-1)
+        self._pos = 0
+        self.injected += 1
+        return len(self._clip) / SR
+
+    @property
+    def active(self) -> bool:
+        return self._clip is not None
+
+    def _advance(self, n: int) -> np.ndarray | None:
+        if self._clip is None:
+            return None
+        blk = self._clip[self._pos: self._pos + n]
+        self._pos += n
+        if self._pos >= len(self._clip):
+            self._clip = None
+        return np.pad(blk, (0, n - len(blk))) if len(blk) < n else blk
+
+    async def __anext__(self):
+        blk = await self.inner.__anext__()
+        rep = self._advance(len(blk))
+        return blk if rep is None else rep
+
+    def flush(self) -> int:
+        n = self.inner.flush() or 0
+        if n:
+            self._advance(n * self.block)
+        return n
+
+    def close(self) -> None:
+        self.inner.close()
 
 
 def open_mic(backend: str = "auto", device=None, block_ms: int = 100) -> Source:
