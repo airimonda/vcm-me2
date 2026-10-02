@@ -76,9 +76,19 @@ async def index_handler(request: web.Request) -> web.FileResponse:
     return web.FileResponse(UI_DIR / "index.html")
 
 
+@web.middleware
+async def no_cache(request: web.Request, handler):
+    """The page and its JS/CSS must never come from the browser cache: an old cached app.js (e.g. the previous
+    runtime's dashboard on the same port) talks to this server in another message format and shows blank turns."""
+    resp = await handler(request)
+    if request.path == "/" or request.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
 def build_app(bus, state, convo=None, replies_dir=None) -> web.Application:
     """Assemble the Application (separate from start_ui_server so tests can use aiohttp's test client)."""
-    app = web.Application()
+    app = web.Application(middlewares=[no_cache])
     app["bus"], app["state"], app["convo"] = bus, state, convo
     app["latest"] = {}
     app.router.add_get("/", index_handler)

@@ -119,7 +119,9 @@ def test_dashboard_websocket_roundtrip(tmp_path):
         async with TestClient(TestServer(app)) as client:
             r = await client.get("/")
             assert r.status == 200 and "Understood as" in await r.text()
-            assert (await client.get("/static/app.js")).status == 200
+            js = await client.get("/static/app.js")
+            assert js.status == 200 and "no-store" in js.headers.get("Cache-Control", "")
+            assert "no-store" in r.headers.get("Cache-Control", "")      # never serve a stale dashboard
             assert (await client.get("/static/fonts/Inter-Variable.woff2")).status == 200
             ws = await client.ws_connect("/ws")
             first = json.loads((await ws.receive()).data)
