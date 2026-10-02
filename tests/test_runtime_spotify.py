@@ -123,14 +123,31 @@ def test_play_transfers_then_starts_context_when_nothing_queued():
     assert fake.playing
 
 
-def test_play_resumes_when_something_is_queued_without_overriding_it():
+def test_play_starts_configured_context_over_something_else_queued():
     fake = FakeSpotify(device_active=True, with_item=True)
     fake, _, c = make(fake, context_uri="spotify:playlist:abc")
     c.play()
     play = next(call for call in fake.calls if call[1] == "/me/player/play")
-    assert play[3] is None                              # plain resume, the configured playlist is NOT restarted
+    assert play[3] == {"context_uri": "spotify:playlist:abc"}   # "play music" always means the configured context
     assert ("PUT", "/me/player") not in fake.paths()    # already the active device: no transfer
     assert fake.playing
+
+
+def test_play_resumes_when_configured_context_is_loaded():
+    fake = FakeSpotify(device_active=True, with_item=True)
+    fake, _, c = make(fake, context_uri="spotify:playlist:abc")
+    c.playback = lambda: {"item": {"name": "x"}, "is_playing": False, "context": {"uri": "spotify:playlist:abc"}}
+    c.play()
+    play = next(call for call in fake.calls if call[1] == "/me/player/play")
+    assert play[3] is None                              # paused inside the same context: plain resume
+
+
+def test_play_without_context_resumes_whatever_is_queued():
+    fake = FakeSpotify(device_active=True, with_item=True)
+    fake, _, c = make(fake)
+    c.play()
+    play = next(call for call in fake.calls if call[1] == "/me/player/play")
+    assert play[3] is None
 
 
 def test_play_with_nothing_queued_and_no_context_says_so():
@@ -289,3 +306,20 @@ def test_mock_player_end_to_end():
     resps = [run_cmd(act, c)[0].say for c in ("NEXT", "PLAY_MUSIC", "NEXT", "PAUSE", "STOP")]
     assert resps == ["music_nothing_playing", "music_play", "music_next", "music_paused", "music_stopped"]
     act._pool.shutdown(wait=True)
+
+
+def test_liked_resolves_to_collection_and_resumes_when_loaded():
+    from runtime.actuators.spotify import SpotifyClient
+
+    class C(SpotifyClient):
+        def __init__(self):
+            self.context_uri, self.calls = "liked", []
+
+        def _request(self, method, path, params=None, body=None, _retry=True):
+            self.calls.append((method, path, body))
+            return {"id": "u1"} if path == "/me" else None
+
+    c = C()
+    assert c.resolved_context() == "spotify:user:u1:collection"
+    assert c.resolved_context() == "spotify:user:u1:collection"
+    assert sum(1 for m, p, _ in c.calls if p == "/me") == 1          # cached after the first lookup

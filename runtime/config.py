@@ -17,7 +17,7 @@ DEFAULTS: dict = {
                 "start_ignore_s": 0.25, "margin_db": 10.0, "min_db": -55.0, "min_speech_s": 0.12},
     "dispatcher": {"oos_reply": "sorry", "ducking": True, "duck_to": 20},
     "mock": {"light": True, "aircon": True, "spotify": False},
-    "music": {"credentials": "config/spotify.json", "device_name": "Watson", "context_uri": None,
+    "music": {"credentials": "config/spotify.json", "device_name": "Watson", "context_uri": "liked",
               "shuffle": True, "volume_step": 15, "poll_s": 5.0, "timeout_s": 4.0},
     "comms": {"contact": "Mom", "message_text": "I'm on my way"},
     "thermostat": {"min": 16, "max": 30, "start_room_temp": 28.0, "drift_period_s": 120},

@@ -45,7 +45,7 @@ slot head. Everything else is the dispatcher (`runtime/dispatcher.py`).
 
 | command (slot) | action | device |
 |---|---|---|
-| PLAY_MUSIC | transfer to the Pi's Spotify Connect device if needed, resume, or start `music.context_uri` when nothing is queued | Spotify (real) |
+| PLAY_MUSIC | transfer to the Pi's Spotify Connect device if needed, then start `music.context_uri` (default `liked` = the account's Liked Songs, shuffled), or resume it if it is already loaded and paused | Spotify (real) |
 | PAUSE / STOP | Spotify pause (stop = pause; STOP also silences a ringing timer/alarm instead) | Spotify |
 | NEXT | skip to the next track | Spotify |
 | VOLUME_UP / VOLUME_DOWN | Spotify device volume +/- 15 % (`music.volume_step`), clamped 0-100 | Spotify |

@@ -45,7 +45,7 @@ mock:                                      # true = emulated device (no hardware
 music:                                     # Spotify Web API -> Spotify Connect device on the Pi (raspotify)
   credentials: config/spotify.json         # client_id, client_secret, refresh_token (+ optional overrides, see example)
   device_name: Watson                      # LIBRESPOT_NAME in /etc/raspotify/conf
-  context_uri: null                        # playlist/album URI to start when nothing is queued (spotify:playlist:...)
+  context_uri: liked                       # "play music" starts this: "liked" = your Liked Songs, or a URI (spotify:playlist:...); null = just resume
   shuffle: true
   volume_step: 15
   poll_s: 5.0                              # now-playing refresh for the dashboard (0 = off)

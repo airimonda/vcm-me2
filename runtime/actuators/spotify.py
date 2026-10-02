@@ -6,7 +6,7 @@ The Pi runs raspotify (librespot), which shows up as a Spotify Connect device na
     refresh token --> access token (cached, refreshed 60 s early)
     GET  /me/player/devices            find the device by name
     PUT  /me/player                    transfer playback to it (if it is not the active device)
-    PUT  /me/player/play               resume, or start `context_uri` when nothing is queued
+    PUT  /me/player/play               start `context_uri` ("liked" = Liked Songs) or resume it
     PUT  /me/player/pause              PAUSE and STOP (stop = pause)
     POST /me/player/next               NEXT
     PUT  /me/player/volume             VOLUME_UP / VOLUME_DOWN (+-volume_step) and ducking
@@ -228,16 +228,27 @@ class SpotifyClient:
             return fn(self.find_device()["id"])
 
     # -- commands ----------------------------------------------------------------------
+    def resolved_context(self):
+        """context_uri, with "liked" meaning the user's Liked Songs (spotify:user:<id>:collection)"""
+        if self.context_uri == "liked":
+            if not getattr(self, "_liked_uri", None):
+                self._liked_uri = "spotify:user:%s:collection" % self._request("GET", "/me")["id"]
+            return self._liked_uri
+        return self.context_uri
+
     def play(self) -> dict:
-        """resume, or start the configured context when nothing is queued; transfers playback if needed"""
+        """Start the configured context (default: Liked Songs), or resume it if it is what is loaded and paused.
+        Without a context_uri: resume whatever is loaded. Transfers playback to the device if needed."""
         dev = self.find_device()                      # fresh: is it listed, is it the active device?
         st = self.playback()
         has_item = bool(st and st.get("item"))
         if not dev.get("is_active"):
             self._request("PUT", "/me/player", body={"device_ids": [dev["id"]], "play": False})
         body = None
-        if not has_item and self.context_uri:
-            body = {"context_uri": self.context_uri}
+        ctx = self.resolved_context()
+        loaded = ((st or {}).get("context") or {}).get("uri")
+        if ctx and not (has_item and loaded == ctx):
+            body = {"context_uri": ctx}
             if self.shuffle:
                 self._retry_no_device(lambda: self._request("PUT", "/me/player/shuffle",
                                                             params={"state": "true", "device_id": dev["id"]}))
