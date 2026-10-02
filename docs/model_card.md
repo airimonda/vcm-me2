@@ -20,7 +20,7 @@ Out of scope: open-vocabulary speech recognition, speaker identification or veri
 
 ## Training data
 
-Hugging Face dataset `airimonda/ai231-me2-voice-commands`, speaker-disjoint splits: train 10,733 clips (2,359 real, 8,374 synthetic; 270 out-of-scope), test 4,443 (824 real), holdout 202 (96 real). Training also uses 778 synthetic negatives (noise, babble, reversed speech, truncated commands, near-silence). Model fitting used 9,180 train clips; a speaker-disjoint 1,553-clip slice of train (*tune*) made every choice after the architecture bake-off. Real recordings are few in speaker count (3 group speakers in train, per project notes), so most speech seen in training is synthetic. See `docs/paper.md`, Section 3.
+Hugging Face dataset `airimonda/ai231-me2-voice-commands`, speaker-disjoint splits: train 10,733 clips (2,359 real, 8,374 synthetic; 270 out-of-scope), test 4,443 (824 real), holdout 202 (96 real). Training also uses 778 synthetic negatives (noise, babble, reversed speech, truncated commands, near-silence). Model fitting used 9,180 train clips; a speaker-disjoint 1,553-clip slice of train (*tune*) made every choice after the architecture bake-off. Real recordings are few in speaker count: the group's own Filipino recordings in train come from 6 speaker IDs (680 clips), of which one (72 clips) is held out as the only group speaker in tune, so most speech seen in training is synthetic. See `docs/paper.md`, Section 3.
 
 ## Metrics
 
@@ -46,7 +46,7 @@ Ensemble fp32 by voice type: clip accuracy 0.9895 on synthetic voices (3,619 cli
 ## Caveats
 
 * Real-voice variation balanced accuracy is 0.7727, against 0.9431 over all clips; the test set is about 81% synthetic speech.
-* 9.2% of out-of-scope test clips (7 of 76) are accepted as commands; babble (20%) and truncated commands (10%) are the weakest negatives. The threshold was tuned on data with no Filipino-accented out-of-scope speech, while about 30% of the test out-of-scope speech is Filipino-accented (project notes).
+* 9.2% of out-of-scope test clips (7 of 76) are accepted as commands; babble (20%) and truncated commands (10%) are the weakest negatives. The threshold was tuned on data with no Filipino-accented out-of-scope speech, while 14 of the 76 test out-of-scope clips (18%) are Filipino-accented Common Voice speech.
 * The test split was used to pick the architecture (bake-off rounds 1 and 2) and was scored more than once in the final evaluation (single model first, then the ensemble, plus int8 and baseline variants). The holdout split has not been used.
 * int8 costs the ensemble about 0.3 points of variation balanced accuracy and 0.9 points of real-voice score (sign test p = 0.016).
 * Input must be a 5-second window. Evaluation clips were speech-trimmed and centred by an offline step that is not part of the model; streaming behaviour is untested.
