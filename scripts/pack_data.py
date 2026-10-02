@@ -156,7 +156,7 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     for s in a.splits:
-        assert s in ("train", "test", "holdout"), f"unknown split {s} (numerals is not used)"
+        assert s in ("train", "test", "holdout", "tune_oos"), f"unknown split {s} (numerals is not used)"
         pack_split(Path(a.dataset).expanduser(), s, out, a.workers)
     if a.negatives:
         neg = Path(a.negatives).expanduser()
