@@ -1,0 +1,27 @@
+arch: tc_resnet
+aug: heavy
+batch_size: 64
+device: auto
+early_stop:
+  max_epochs: 60
+  min_epochs: 8
+  min_rel_impr: 0.02
+  n: 3
+epochs: 60
+eval_tau: 0.0
+grad_clip: 5.0
+label_smoothing: 0.1
+lr: 0.003
+max_test_clips: null
+max_train_clips: null
+noise: data/packs/noise.npz
+num_workers: 4
+oos_weight: 3.0
+out: exp/tc_resnet_S_s0
+pack_dir: data/packs
+real_weight: 5.0
+seed: 0
+select_real_weight: 0.5
+tier: S
+warmup_epochs: 2
+weight_decay: 0.01

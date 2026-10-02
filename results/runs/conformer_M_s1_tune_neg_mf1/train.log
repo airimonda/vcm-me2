@@ -1,0 +1,54 @@
+conformer tier M: 294,246 params | device cuda | train 9958 (778 neg) tune 1553 neg_tune 116 | aug heavy | misfire_weight 1.0
+ep   1 loss 4.6692 tune select 0.0154 var-bal-acc 0.0113 real 0.0196 cmd 0.0187 slot 0.3608 oosFA 0.000 mfloss 0.6230 negMF 0.017 14.4s *
+ep   2 loss 4.4619 tune select 0.0339 var-bal-acc 0.0437 real 0.0241 cmd 0.0940 slot 0.4101 oosFA 0.429 mfloss 0.5152 negMF 0.216 12.7s *
+ep   3 loss 4.3384 tune select 0.0294 var-bal-acc 0.0410 real 0.0178 cmd 0.1005 slot 0.4742 oosFA 0.286 mfloss 0.4970 negMF 0.026 12.6s
+ep   4 loss 4.1405 tune select 0.0893 var-bal-acc 0.1161 real 0.0625 cmd 0.2769 slot 0.5601 oosFA 0.536 mfloss 0.4541 negMF 0.405 13.1s *
+ep   5 loss 3.9368 tune select 0.1586 var-bal-acc 0.2306 real 0.0865 cmd 0.3516 slot 0.6529 oosFA 0.750 mfloss 0.4367 negMF 0.181 13.9s *
+ep   6 loss 3.7438 tune select 0.2519 var-bal-acc 0.3504 real 0.1533 cmd 0.4894 slot 0.6964 oosFA 0.536 mfloss 0.4189 negMF 0.422 14.1s *
+ep   7 loss 3.4935 tune select 0.3457 var-bal-acc 0.4886 real 0.2028 cmd 0.5879 slot 0.7549 oosFA 0.679 mfloss 0.3889 negMF 0.405 13.6s *
+ep   8 loss 3.3214 tune select 0.4608 var-bal-acc 0.6146 real 0.3070 cmd 0.6632 slot 0.8591 oosFA 0.464 mfloss 0.3690 negMF 0.250 13.7s *
+ep   9 loss 3.1420 tune select 0.5174 var-bal-acc 0.6758 real 0.3589 cmd 0.7090 slot 0.8751 oosFA 0.643 mfloss 0.3422 negMF 0.345 13.9s *
+ep  10 loss 3.0192 tune select 0.5450 var-bal-acc 0.6899 real 0.4000 cmd 0.7199 slot 0.9003 oosFA 0.393 mfloss 0.3468 negMF 0.181 13.8s *
+ep  11 loss 2.9001 tune select 0.6165 var-bal-acc 0.7448 real 0.4883 cmd 0.7759 slot 0.9118 oosFA 0.429 mfloss 0.3193 negMF 0.284 13.9s *
+ep  12 loss 2.8210 tune select 0.5528 var-bal-acc 0.7269 real 0.3786 cmd 0.7399 slot 0.9336 oosFA 0.143 mfloss 0.3037 negMF 0.155 14.0s
+ep  13 loss 2.7188 tune select 0.5110 var-bal-acc 0.6908 real 0.3313 cmd 0.7205 slot 0.8969 oosFA 0.143 mfloss 0.2972 negMF 0.060 13.9s
+ep  14 loss 2.6276 tune select 0.6327 var-bal-acc 0.7726 real 0.4929 cmd 0.7875 slot 0.9507 oosFA 0.214 mfloss 0.2848 negMF 0.164 14.7s *
+ep  15 loss 2.6033 tune select 0.5997 var-bal-acc 0.7776 real 0.4219 cmd 0.7830 slot 0.9542 oosFA 0.179 mfloss 0.2805 negMF 0.164 14.3s
+ep  16 loss 2.5616 tune select 0.6204 var-bal-acc 0.7871 real 0.4536 cmd 0.8049 slot 0.9301 oosFA 0.286 mfloss 0.2749 negMF 0.129 14.9s
+ep  17 loss 2.4652 tune select 0.6659 var-bal-acc 0.8134 real 0.5184 cmd 0.8236 slot 0.9519 oosFA 0.321 mfloss 0.2539 negMF 0.138 14.4s *
+ep  18 loss 2.4650 tune select 0.6389 var-bal-acc 0.8059 real 0.4719 cmd 0.8036 slot 0.9588 oosFA 0.429 mfloss 0.2646 negMF 0.069 14.5s
+ep  19 loss 2.4136 tune select 0.6521 var-bal-acc 0.8071 real 0.4971 cmd 0.8184 slot 0.9404 oosFA 0.286 mfloss 0.2504 negMF 0.172 14.4s
+ep  20 loss 2.3615 tune select 0.6816 var-bal-acc 0.8255 real 0.5377 cmd 0.8358 slot 0.9553 oosFA 0.179 mfloss 0.2485 negMF 0.103 14.1s *
+ep  21 loss 2.2790 tune select 0.6814 var-bal-acc 0.8240 real 0.5388 cmd 0.8364 slot 0.9507 oosFA 0.107 mfloss 0.2241 negMF 0.069 14.4s
+ep  22 loss 2.2721 tune select 0.7037 var-bal-acc 0.8548 real 0.5527 cmd 0.8622 slot 0.9530 oosFA 0.250 mfloss 0.2261 negMF 0.129 14.2s *
+ep  23 loss 2.1785 tune select 0.7125 var-bal-acc 0.8587 real 0.5662 cmd 0.8635 slot 0.9633 oosFA 0.321 mfloss 0.2110 negMF 0.164 14.0s *
+ep  24 loss 2.1638 tune select 0.7104 var-bal-acc 0.8596 real 0.5612 cmd 0.8616 slot 0.9645 oosFA 0.286 mfloss 0.2004 negMF 0.138 14.3s
+ep  25 loss 2.2023 tune select 0.6803 var-bal-acc 0.8480 real 0.5125 cmd 0.8461 slot 0.9599 oosFA 0.250 mfloss 0.2234 negMF 0.112 14.7s
+ep  26 loss 2.1339 tune select 0.7173 var-bal-acc 0.8605 real 0.5741 cmd 0.8686 slot 0.9622 oosFA 0.536 mfloss 0.2056 negMF 0.155 13.8s *
+ep  27 loss 2.1227 tune select 0.7715 var-bal-acc 0.8949 real 0.6480 cmd 0.8976 slot 0.9691 oosFA 0.286 mfloss 0.1972 negMF 0.112 14.1s *
+ep  28 loss 2.0826 tune select 0.7392 var-bal-acc 0.8701 real 0.6083 cmd 0.8764 slot 0.9611 oosFA 0.393 mfloss 0.1924 negMF 0.129 14.2s
+ep  29 loss 2.0287 tune select 0.7370 var-bal-acc 0.8704 real 0.6036 cmd 0.8764 slot 0.9588 oosFA 0.179 mfloss 0.1868 negMF 0.129 14.7s
+ep  30 loss 2.0433 tune select 0.7319 var-bal-acc 0.8760 real 0.5877 cmd 0.8841 slot 0.9588 oosFA 0.107 mfloss 0.1986 negMF 0.078 14.2s
+ep  31 loss 2.0119 tune select 0.7271 var-bal-acc 0.8707 real 0.5834 cmd 0.8731 slot 0.9599 oosFA 0.179 mfloss 0.1843 negMF 0.069 14.1s
+ep  32 loss 1.9768 tune select 0.7736 var-bal-acc 0.8970 real 0.6502 cmd 0.9002 slot 0.9645 oosFA 0.250 mfloss 0.1782 negMF 0.095 13.8s *
+ep  33 loss 1.9608 tune select 0.7535 var-bal-acc 0.8927 real 0.6144 cmd 0.8995 slot 0.9611 oosFA 0.214 mfloss 0.1840 negMF 0.112 14.6s
+ep  34 loss 1.9326 tune select 0.7531 var-bal-acc 0.8810 real 0.6253 cmd 0.8809 slot 0.9645 oosFA 0.179 mfloss 0.1702 negMF 0.060 14.1s
+ep  35 loss 1.8692 tune select 0.7507 var-bal-acc 0.8961 real 0.6054 cmd 0.8970 slot 0.9668 oosFA 0.393 mfloss 0.1503 negMF 0.155 14.8s
+ep  36 loss 1.8935 tune select 0.7690 var-bal-acc 0.8953 real 0.6426 cmd 0.8976 slot 0.9645 oosFA 0.321 mfloss 0.1596 negMF 0.103 14.3s
+ep  37 loss 1.8917 tune select 0.7656 var-bal-acc 0.9021 real 0.6291 cmd 0.9073 slot 0.9599 oosFA 0.179 mfloss 0.1599 negMF 0.112 14.1s
+ep  38 loss 1.8628 tune select 0.7541 var-bal-acc 0.8919 real 0.6163 cmd 0.8983 slot 0.9679 oosFA 0.179 mfloss 0.1532 negMF 0.086 14.2s
+ep  39 loss 1.8448 tune select 0.7660 var-bal-acc 0.8989 real 0.6331 cmd 0.8976 slot 0.9714 oosFA 0.179 mfloss 0.1494 negMF 0.086 14.1s
+ep  40 loss 1.8382 tune select 0.7630 var-bal-acc 0.9058 real 0.6202 cmd 0.9079 slot 0.9668 oosFA 0.179 mfloss 0.1614 negMF 0.069 14.8s
+ep  41 loss 1.8174 tune select 0.7794 var-bal-acc 0.9050 real 0.6538 cmd 0.9053 slot 0.9725 oosFA 0.143 mfloss 0.1473 negMF 0.069 14.4s *
+ep  42 loss 1.8050 tune select 0.7771 var-bal-acc 0.9105 real 0.6436 cmd 0.9079 slot 0.9748 oosFA 0.214 mfloss 0.1456 negMF 0.078 14.2s
+ep  43 loss 1.7783 tune select 0.7782 var-bal-acc 0.9153 real 0.6412 cmd 0.9124 slot 0.9794 oosFA 0.250 mfloss 0.1476 negMF 0.060 14.3s
+ep  44 loss 1.7391 tune select 0.7782 var-bal-acc 0.9097 real 0.6467 cmd 0.9086 slot 0.9737 oosFA 0.250 mfloss 0.1399 negMF 0.060 14.3s
+ep  45 loss 1.7487 tune select 0.7798 var-bal-acc 0.9113 real 0.6483 cmd 0.9111 slot 0.9737 oosFA 0.250 mfloss 0.1378 negMF 0.052 14.1s *
+ep  46 loss 1.7049 tune select 0.7787 var-bal-acc 0.9131 real 0.6444 cmd 0.9124 slot 0.9748 oosFA 0.214 mfloss 0.1279 negMF 0.043 14.1s
+ep  47 loss 1.7246 tune select 0.7810 var-bal-acc 0.9126 real 0.6493 cmd 0.9137 slot 0.9725 oosFA 0.250 mfloss 0.1297 negMF 0.052 14.3s *
+ep  48 loss 1.7023 tune select 0.7693 var-bal-acc 0.9102 real 0.6284 cmd 0.9131 slot 0.9714 oosFA 0.250 mfloss 0.1313 negMF 0.060 14.9s
+ep  49 loss 1.7131 tune select 0.8028 var-bal-acc 0.9213 real 0.6843 cmd 0.9208 slot 0.9794 oosFA 0.286 mfloss 0.1307 negMF 0.043 14.5s *
+ep  50 loss 1.7075 tune select 0.7862 var-bal-acc 0.9177 real 0.6546 cmd 0.9176 slot 0.9748 oosFA 0.250 mfloss 0.1291 negMF 0.052 14.2s
+ep  51 loss 1.7062 tune select 0.7864 var-bal-acc 0.9172 real 0.6557 cmd 0.9163 slot 0.9737 oosFA 0.250 mfloss 0.1265 negMF 0.052 14.2s
+ep  52 loss 1.6953 tune select 0.7944 var-bal-acc 0.9210 real 0.6678 cmd 0.9189 slot 0.9771 oosFA 0.250 mfloss 0.1223 negMF 0.060 14.2s
+stop: early_stop: train loss gain 1.040% < 2% over 3 epochs and test score 0.7944 < best 0.8028 (epoch 49) and < 0.8028 (3 epochs ago)

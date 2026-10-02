@@ -1,0 +1,23 @@
+{
+  "arch": "bc_resnet",
+  "tier": "S",
+  "seed": 0,
+  "aug": "heavy",
+  "params": 93750,
+  "best_epoch": 29,
+  "stop_epoch": 30,
+  "stop_reason": "early_stop: train loss gain 1.826% < 2% over 3 epochs and test score 0.7896 < best 0.8191 (epoch 29) and < 0.8140 (3 epochs ago)",
+  "best": {
+    "variation_bal_acc": 0.9002191712660959,
+    "real_variation_bal_acc": 0.7380102945695353,
+    "command_acc": 0.9126716182759397,
+    "slot_acc": 0.9716312056737588,
+    "oos_false_accept": 0.39473684210526316,
+    "in_scope_false_reject": 0.013968399358827571,
+    "command_bal_acc": 0.8612367390236215,
+    "epoch": 29,
+    "select_score": 0.8191147329178156
+  },
+  "mean_epoch_time_s": 19.93401237328847,
+  "device": "cuda"
+}

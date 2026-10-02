@@ -1,0 +1,27 @@
+matchbox tier M: 295,502 params | device cuda | train 10733 test 4443 | aug heavy
+ep   1 loss 3.9526 test select 0.0749 var-bal-acc 0.0815 real 0.0683 cmd 0.2312 slot 0.3660 oosFA 0.961 16.5s *
+ep   2 loss 3.7253 test select 0.1297 var-bal-acc 0.1526 real 0.1067 cmd 0.3207 slot 0.5485 oosFA 0.974 14.2s *
+ep   3 loss 3.3505 test select 0.4222 var-bal-acc 0.5050 real 0.3394 cmd 0.5953 slot 0.8077 oosFA 0.908 14.0s *
+ep   4 loss 2.9983 test select 0.5163 var-bal-acc 0.5727 real 0.4599 cmd 0.6768 slot 0.7931 oosFA 0.895 13.9s *
+ep   5 loss 2.7666 test select 0.6478 var-bal-acc 0.7334 real 0.5622 cmd 0.7871 slot 0.8885 oosFA 0.724 14.5s *
+ep   6 loss 2.5634 test select 0.6570 var-bal-acc 0.7686 real 0.5454 cmd 0.8114 slot 0.9141 oosFA 0.684 13.8s *
+ep   7 loss 2.4584 test select 0.7266 var-bal-acc 0.8152 real 0.6381 cmd 0.8294 slot 0.9614 oosFA 0.474 13.8s *
+ep   8 loss 2.3255 test select 0.7380 var-bal-acc 0.8388 real 0.6371 cmd 0.8501 slot 0.9614 oosFA 0.513 14.0s *
+ep   9 loss 2.2552 test select 0.7686 var-bal-acc 0.8685 real 0.6686 cmd 0.8902 slot 0.9555 oosFA 0.355 14.2s *
+ep  10 loss 2.1749 test select 0.7893 var-bal-acc 0.8886 real 0.6899 cmd 0.8956 slot 0.9748 oosFA 0.526 14.1s *
+ep  11 loss 2.1151 test select 0.8122 var-bal-acc 0.8959 real 0.7285 cmd 0.9001 slot 0.9862 oosFA 0.461 14.1s *
+ep  12 loss 2.1134 test select 0.8195 var-bal-acc 0.8950 real 0.7440 cmd 0.9025 slot 0.9807 oosFA 0.355 14.3s *
+ep  13 loss 2.0505 test select 0.8052 var-bal-acc 0.8904 real 0.7200 cmd 0.8969 slot 0.9799 oosFA 0.434 14.1s
+ep  14 loss 1.9933 test select 0.8308 var-bal-acc 0.9143 real 0.7473 cmd 0.9185 slot 0.9838 oosFA 0.421 14.1s *
+ep  15 loss 1.9365 test select 0.8423 var-bal-acc 0.9205 real 0.7640 cmd 0.9242 slot 0.9823 oosFA 0.684 14.1s *
+ep  16 loss 1.9243 test select 0.8395 var-bal-acc 0.9084 real 0.7706 cmd 0.9185 slot 0.9744 oosFA 0.500 14.1s
+ep  17 loss 1.8818 test select 0.8445 var-bal-acc 0.9122 real 0.7767 cmd 0.9158 slot 0.9850 oosFA 0.632 14.2s *
+ep  18 loss 1.8867 test select 0.8325 var-bal-acc 0.9244 real 0.7407 cmd 0.9316 slot 0.9815 oosFA 0.276 14.2s
+ep  19 loss 1.8414 test select 0.8243 var-bal-acc 0.9114 real 0.7372 cmd 0.9208 slot 0.9775 oosFA 0.395 14.1s
+ep  20 loss 1.8211 test select 0.8483 var-bal-acc 0.9239 real 0.7727 cmd 0.9307 slot 0.9815 oosFA 0.539 14.3s *
+ep  21 loss 1.8084 test select 0.8432 var-bal-acc 0.9164 real 0.7700 cmd 0.9242 slot 0.9775 oosFA 0.711 13.9s
+ep  22 loss 1.7645 test select 0.8754 var-bal-acc 0.9353 real 0.8155 cmd 0.9374 slot 0.9886 oosFA 0.500 14.1s *
+ep  23 loss 1.7333 test select 0.8588 var-bal-acc 0.9291 real 0.7885 cmd 0.9332 slot 0.9862 oosFA 0.474 13.6s
+ep  24 loss 1.7353 test select 0.8722 var-bal-acc 0.9397 real 0.8047 cmd 0.9437 slot 0.9870 oosFA 0.342 14.3s
+ep  25 loss 1.7311 test select 0.8659 var-bal-acc 0.9320 real 0.7998 cmd 0.9343 slot 0.9882 oosFA 0.618 14.2s
+stop: early_stop: train loss gain 1.894% < 2% over 3 epochs and test score 0.8659 < best 0.8754 (epoch 22) and < 0.8754 (3 epochs ago)

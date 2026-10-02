@@ -1,0 +1,112 @@
+{
+  "format": "vcm-onnx-v1",
+  "arch": "conformer",
+  "tier": "M",
+  "params": 294246,
+  "sample_rate": 16000,
+  "window_samples": 80000,
+  "window_seconds": 5.0,
+  "input": {
+    "name": "waveform",
+    "shape": [
+      "batch",
+      80000
+    ],
+    "dtype": "float32",
+    "range": [
+      -1.0,
+      1.0
+    ]
+  },
+  "outputs": {
+    "cmd_logits": [
+      "batch",
+      20
+    ],
+    "slot_logits": [
+      "batch",
+      6,
+      3
+    ]
+  },
+  "classes": [
+    "PLAY_MUSIC",
+    "PAUSE",
+    "STOP",
+    "NEXT",
+    "VOLUME_UP",
+    "VOLUME_DOWN",
+    "LIGHT_ON",
+    "LIGHT_OFF",
+    "WEATHER",
+    "TIME",
+    "CALL",
+    "MESSAGE",
+    "LIST_REMINDERS",
+    "TIMER",
+    "ALARM",
+    "TEMPERATURE",
+    "BRIGHTNESS",
+    "COLOR",
+    "CREATE_REMINDER",
+    "OUT_OF_SCOPE"
+  ],
+  "slot_commands": [
+    "TIMER",
+    "ALARM",
+    "TEMPERATURE",
+    "BRIGHTNESS",
+    "COLOR",
+    "CREATE_REMINDER"
+  ],
+  "slot_values": {
+    "TIMER": [
+      "10 seconds",
+      "30 seconds",
+      "1 minute"
+    ],
+    "ALARM": [
+      "6:00 AM",
+      "8:00 AM",
+      "9:00 PM"
+    ],
+    "TEMPERATURE": [
+      "18 degrees",
+      "22 degrees",
+      "26 degrees"
+    ],
+    "BRIGHTNESS": [
+      "20 percent",
+      "60 percent",
+      "100 percent"
+    ],
+    "COLOR": [
+      "Red",
+      "Blue",
+      "Green"
+    ],
+    "CREATE_REMINDER": [
+      "Drink water",
+      "Study",
+      "Exercise"
+    ]
+  },
+  "tau": 0.4,
+  "decision_rule": "softmax(cmd_logits); if max prob < tau -> OUT_OF_SCOPE; else argmax. slot = argmax(slot_logits[head_of(command)]) for slotted commands.",
+  "frontend": {
+    "n_fft": 400,
+    "hop": 160,
+    "n_mels": 64,
+    "log_eps": 1e-06,
+    "norm": "per-utterance mean/std",
+    "included_in_graph": true
+  },
+  "opset": 17,
+  "parity_max_abs_diff": 4.4226646423339844e-05,
+  "parity_max_rel_diff": 7.226143947280547e-06,
+  "quantization": {
+    "scheme": "static QDQ int8, per-channel weights (QInt8), activations QUInt8",
+    "calibration": "400 train clips (seed 0)",
+    "frontend": "fp32 (excluded nodes: 31)"
+  }
+}

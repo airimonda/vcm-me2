@@ -1,0 +1,23 @@
+{
+  "arch": "tc_resnet",
+  "tier": "S",
+  "seed": 0,
+  "aug": "heavy",
+  "params": 106085,
+  "best_epoch": 24,
+  "stop_epoch": 27,
+  "stop_reason": "early_stop: train loss gain 1.202% < 2% over 3 epochs and test score 0.8000 < best 0.8179 (epoch 24) and < 0.8179 (3 epochs ago)",
+  "best": {
+    "variation_bal_acc": 0.89506957461769,
+    "real_variation_bal_acc": 0.7406839565856045,
+    "command_acc": 0.9041188386225524,
+    "slot_acc": 0.9767533490937746,
+    "oos_false_accept": 0.5789473684210527,
+    "in_scope_false_reject": 0.010304556904053125,
+    "command_bal_acc": 0.8425699479324186,
+    "epoch": 24,
+    "select_score": 0.8178767656016472
+  },
+  "mean_epoch_time_s": 13.588513762862593,
+  "device": "cuda"
+}

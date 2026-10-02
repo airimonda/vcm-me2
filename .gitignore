@@ -11,3 +11,6 @@ __pycache__/
 # released models (add with git add -f when published)
 !released/*.onnx
 !released/*.pt
+# released models (final ensemble, single model, baseline checkpoint)
+!models/*.onnx
+!models/ckpt/*.pt

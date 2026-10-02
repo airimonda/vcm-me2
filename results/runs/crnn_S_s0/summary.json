@@ -1,0 +1,23 @@
+{
+  "arch": "crnn",
+  "tier": "S",
+  "seed": 0,
+  "aug": "heavy",
+  "params": 104522,
+  "best_epoch": 26,
+  "stop_epoch": 27,
+  "stop_reason": "early_stop: train loss gain 1.295% < 2% over 3 epochs and test score 0.8267 < best 0.8468 (epoch 26) and < 0.8333 (3 epochs ago)",
+  "best": {
+    "variation_bal_acc": 0.925957804198137,
+    "real_variation_bal_acc": 0.7677007051146602,
+    "command_acc": 0.9297771775827144,
+    "slot_acc": 0.987391646966115,
+    "oos_false_accept": 0.5131578947368421,
+    "in_scope_false_reject": 0.011907487978016945,
+    "command_bal_acc": 0.8859717579007309,
+    "epoch": 26,
+    "select_score": 0.8468292546563986
+  },
+  "mean_epoch_time_s": 15.840709306575635,
+  "device": "cuda"
+}
