@@ -1,0 +1,8 @@
+# Piper TTS synthesis dependencies (data generation only — never a runtime dependency).
+# Direct dependencies only; pinned loosely (>=) from the Piper venv's `pip freeze`.
+# Covers: scripts/generate_piper.py.
+
+piper-tts>=1.8.0
+numpy>=2.5.3
+soundfile>=0.14.0
+soxr>=1.1.0
