@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Watson</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='8' fill='%230A84FF'/%3E%3Cg stroke='white' stroke-width='2.2' stroke-linecap='round'%3E%3Cline x1='9' y1='14' x2='9' y2='18'/%3E%3Cline x1='14' y1='10' x2='14' y2='22'/%3E%3Cline x1='19' y1='7' x2='19' y2='25'/%3E%3Cline x1='24' y1='12' x2='24' y2='20'/%3E%3C/g%3E%3C/svg%3E">
+<script>
+  /* Apply theme/lowfx before first paint. Order: ?theme=/?lowfx= query params
+     (screenshot testing) > saved preference > OS setting. There is no
+     in-app appearance toggle (v4: "Avoid offering an app-specific
+     appearance setting") — ?theme= stays for testing only. */
+  (function () {
+    try {
+      var params = new URLSearchParams(location.search);
+      var forced = params.get("theme");
+      var saved = null;
+      try { saved = localStorage.getItem("watson-theme"); } catch (e) {}
+      var theme = forced || saved;
+      if (theme === "dark" || theme === "light") {
+        document.documentElement.setAttribute("data-theme", theme);
+      }
+      if (params.get("lowfx") === "1") {
+        document.documentElement.setAttribute("data-lowfx", "1");
+      }
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<div id="reconnect-pill" role="status" hidden>&#8635; reconnecting&hellip;</div>
+
+<!-- window-edge glow: fixed, pointer-events:none, masked to a thin border ring.
+     A single oversized layer is rotated with transform (compositor-only,
+     cheap on a Pi 4) rather than animating the conic-gradient itself. -->
+<div class="glow-edge" id="glow-edge" aria-hidden="true">
+  <div class="glow-edge__spin" id="glow-spin"></div>
+</div>
+
+<div class="app-shell">
+
+  <!-- ===================== toolbar (Liquid Glass) ===================== -->
+  <header class="toolbar" id="toolbar">
+    <button class="toolbar-sidebar-btn" id="sidebar-toggle" type="button" aria-label="Toggle sidebar" aria-expanded="true">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/>
+        <line x1="9.5" y1="4.5" x2="9.5" y2="19.5"/>
+      </svg>
+    </button>
+    <h1 class="toolbar-title" id="toolbar-title">Now</h1>
+
+    <div class="toolbar-trailing">
+      <button class="toolbar-clear" id="clear-activity" type="button" hidden>Clear</button>
+
+      <div class="status-capsule">
+        <span class="orb js-orb" id="toolbar-orb" data-state="idle" aria-hidden="true"></span>
+        <span class="js-mode-label" id="toolbar-mode-label">Idle</span>
+      </div>
+
+      <div class="perf-popover-wrap">
+        <button class="perf-capsule" id="perf-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="perf-popover">
+          <span id="perf-readout">&ndash; &middot; &ndash;</span>
+          <svg class="icon perf-info-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="11" x2="12" y2="16.5"/>
+            <circle cx="12" cy="7.6" r="1" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+        <div class="perf-popover" id="perf-popover" role="dialog" aria-label="Full performance numbers" hidden>
+          <dl>
+            <div><dt>End&#8209;to&#8209;end</dt><dd id="pop-e2e">&ndash;</dd></div>
+            <div><dt>Command model</dt><dd id="pop-vcm">&ndash;</dd></div>
+            <div><dt>Wake model</dt><dd id="pop-wake">&ndash;</dd></div>
+            <div><dt>CPU</dt><dd id="pop-cpu">&ndash;</dd></div>
+            <div><dt>RAM</dt><dd id="pop-ram">&ndash;</dd></div>
+            <div><dt>SoC temp</dt><dd id="pop-temp">&ndash;</dd></div>
+            <div><dt>Turns</dt><dd id="pop-turns">0</dd></div>
+            <div><dt>Accuracy</dt><dd id="pop-accuracy">&ndash;</dd></div>
+            <div><dt>False wakes</dt><dd id="pop-falsewakes">0</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="shell-body">
+    <!-- ===================== sidebar (glass, hideable) ===================== -->
+    <nav class="sidebar" id="sidebar" aria-label="Views">
+      <a class="sidebar-item" href="#now" data-view="now">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
+        <span>Now</span>
+      </a>
+      <a class="sidebar-item" href="#home" data-view="home">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 L12 5 L20 12"/><path d="M6.5 10.5 L6.5 19.5 L17.5 19.5 L17.5 10.5"/><line x1="9.5" y1="19.5" x2="9.5" y2="14.5"/><line x1="14.5" y1="19.5" x2="14.5" y2="14.5"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="sidebar-item" href="#timers" data-view="timers">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 12 L16 14.5"/></svg>
+        <span>Timers</span>
+      </a>
+      <a class="sidebar-item" href="#activity" data-view="activity">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><line x1="9.5" y1="6.5" x2="20" y2="6.5"/><circle cx="5" cy="12" r="1.1" fill="currentColor" stroke="none"/><line x1="9.5" y1="12" x2="20" y2="12"/><circle cx="5" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><line x1="9.5" y1="17.5" x2="20" y2="17.5"/></svg>
+        <span>Activity</span>
+      </a>
+      <a class="sidebar-item" href="#diagnostics" data-view="diagnostics">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5 A8 8 0 0 1 20 16.5"/><line x1="12" y1="16.5" x2="16" y2="10.5"/><circle cx="12" cy="16.5" r="1.3" fill="currentColor" stroke="none"/></svg>
+        <span>Diagnostics</span>
+      </a>
+    </nav>
+
+    <!-- ===================== main content ===================== -->
+    <main class="content" id="content">
+
+      <!-- ---------- Now ---------- -->
+      <section class="view" id="view-now" data-view="now">
+        <div class="now-layout">
+          <div class="now-main">
+
+            <section class="card exchange-card" id="exchange-card" aria-label="Current exchange">
+              <div class="exchange-orb-row">
+                <span class="orb orb--lg js-orb" id="now-orb" data-state="idle" aria-hidden="true">
+                  <svg class="orb-glyph" viewBox="0 0 48 48" aria-hidden="true">
+                    <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round">
+                      <line x1="10" y1="20" x2="10" y2="28"/>
+                      <line x1="17" y1="14" x2="17" y2="34"/>
+                      <line x1="24" y1="8" x2="24" y2="40"/>
+                      <line x1="31" y1="14" x2="31" y2="34"/>
+                      <line x1="38" y1="20" x2="38" y2="28"/>
+                    </g>
+                  </svg>
+                </span>
+                <div>
+                  <p class="exchange-state js-mode-label" id="exchange-mode-label">Idle</p>
+                  <p class="exchange-last-answer" id="exchange-last-answer" hidden></p>
+                </div>
+              </div>
+
+              <div id="exchange-empty" class="exchange-empty">Say &ldquo;Watson&rdquo; to start</div>
+
+              <div id="exchange-body" class="exchange-body" hidden>
+                <div class="exchange-block">
+                  <p class="caption-label">Understood as</p>
+                  <p class="exchange-heard" id="exchange-heard-text">&nbsp;</p>
+                  <p class="exchange-meta" id="exchange-heard-meta">&nbsp;</p>
+                </div>
+                <div class="exchange-block">
+                  <p class="caption-label">Watson</p>
+                  <p class="exchange-reply" id="exchange-reply-text">&nbsp;</p>
+                </div>
+                <div class="exchange-actions">
+                  <button class="round-btn" id="exchange-play-heard" type="button" aria-label="Play what the mic heard" hidden>&#9654;</button>
+                  <button class="round-btn" id="exchange-play-reply" type="button" aria-label="Play Watson's reply" hidden>&#9654;</button>
+                  <button class="round-btn round-btn--yes" id="exchange-mark-yes" type="button" aria-label="Mark this turn correct" hidden>&#10003;</button>
+                  <button class="round-btn round-btn--no" id="exchange-mark-no" type="button" aria-label="Mark this turn incorrect" hidden>&#10007;</button>
+                </div>
+                <div class="intent-picker" id="exchange-picker" hidden></div>
+              </div>
+            </section>
+
+            <section class="section-block" aria-label="Accessories">
+              <h2 class="section-header">Accessories</h2>
+              <div class="acc-row" id="acc-row">
+                <button type="button" class="acc-tile" id="acc-music" data-accent="blue">
+                  <span class="acc-icon-circle" data-accent="blue">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="4"/><circle cx="12" cy="15" r="4"/><circle cx="12" cy="8" r="1.6"/></svg>
+                  </span>
+                  <span class="acc-name">Music</span>
+                  <span class="acc-state" id="acc-music-state">Nothing playing</span>
+                  <span class="acc-caption">Spotify</span>
+                </button>
+                <button type="button" class="acc-tile" id="acc-light" data-accent="yellow">
+                  <span class="acc-icon-circle" id="acc-light-icon-circle" data-accent="yellow">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle class="bulb-glass" cx="12" cy="10" r="6.2"/><path d="M9.2 15.6 L9.2 18.4 A2 2 0 0 0 11.2 20.4 L12.8 20.4 A2 2 0 0 0 14.8 18.4 L14.8 15.6"/><line x1="10" y1="17.2" x2="14" y2="17.2"/></svg>
+                  </span>
+                  <span class="acc-name">Light</span>
+                  <span class="acc-state" id="acc-light-state">Off</span>
+                  <span class="acc-caption">Emulated</span>
+                </button>
+                <button type="button" class="acc-tile" id="acc-thermo" data-accent="cyan">
+                  <span class="acc-icon-circle" data-accent="cyan">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><g class="icon-snowflake-spin"><line x1="12" y1="3.5" x2="12" y2="20.5"/><line x1="4.9" y1="7.75" x2="19.1" y2="16.25"/><line x1="19.1" y1="7.75" x2="4.9" y2="16.25"/><path d="M12 3.5 L10.2 5.3 M12 3.5 L13.8 5.3"/><path d="M12 20.5 L10.2 18.7 M12 20.5 L13.8 18.7"/></g></svg>
+                  </span>
+                  <span class="acc-name">Thermostat</span>
+                  <span class="acc-state" id="acc-thermo-state">Off</span>
+                  <span class="acc-caption">Emulated</span>
+                </button>
+                <button type="button" class="acc-tile" id="acc-phone" data-accent="green">
+                  <span class="acc-icon-circle" data-accent="green">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><rect class="phone-screen" x="8.4" y="5" width="7.2" height="12.5" rx="0.8" stroke="none"/><line x1="10.2" y1="19" x2="13.8" y2="19"/></svg>
+                  </span>
+                  <span class="acc-name">Phone</span>
+                  <span class="acc-state" id="acc-phone-state">No active call</span>
+                  <span class="acc-caption">Emulated</span>
+                </button>
+                <button type="button" class="acc-tile" id="acc-weather" data-accent="cyan">
+                  <span class="acc-icon-circle" data-accent="cyan">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="9.5" r="3.6"/><path d="M6.5 17.5 A3.6 3.6 0 0 1 6 10.4 A5 5 0 0 1 15.6 9 A3.4 3.4 0 0 1 15 17.5 Z"/></svg>
+                  </span>
+                  <span class="acc-name">Weather</span>
+                  <span class="acc-state" id="acc-weather-state">Ask Watson</span>
+                  <span class="acc-caption" id="acc-weather-caption">Live</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="card inset-card" aria-label="Timers and reminders">
+              <h2 class="section-header section-header--incard">Timers &amp; Reminders</h2>
+              <ul class="entry-list" id="now-timers-list"></ul>
+              <ul class="entry-list" id="now-reminders-list"></ul>
+            </section>
+
+            <section class="card perf-card" id="perf-card" aria-label="Performance">
+              <h2 class="section-header section-header--incard">Performance</h2>
+              <div class="perf-card-row">
+                <div class="perf-figure">
+                  <span class="perf-figure-label">End&#8209;to&#8209;end</span>
+                  <span class="perf-figure-value" id="perf-e2e">&ndash;</span>
+                  <svg class="sparkline" id="spark-e2e" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points=""/></svg>
+                </div>
+                <div class="perf-line-item"><span id="perf-vcm-wake">&ndash;</span></div>
+                <div class="perf-line-item"><span id="perf-sys">&ndash;</span></div>
+                <div class="perf-line-item"><span id="perf-accuracy">&ndash;</span></div>
+              </div>
+              <dl class="perf-stages" id="perf-stages" aria-label="Latency per stage"></dl>
+              <p class="perf-warning" id="perf-warning" hidden></p>
+            </section>
+
+          </div>
+
+          <aside class="now-activity" aria-label="Recent activity">
+            <div class="now-activity-head">
+              <h2 class="section-header section-header--incard">Activity</h2>
+              <a class="see-all-link" href="#activity">See all</a>
+            </div>
+            <ol class="now-activity-list" id="now-activity-list"></ol>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ---------- Home ---------- -->
+      <section class="view" id="view-home" data-view="home" hidden>
+        <div class="home-grid">
+          <section class="card home-tile" id="home-music" aria-label="Music">
+            <div class="home-tile-head">
+              <span class="acc-icon-circle" data-accent="blue">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="4"/><circle cx="12" cy="15" r="4"/><circle cx="12" cy="8" r="1.6"/></svg>
+              </span>
+              <div>
+                <p class="home-tile-name">Music</p>
+                <p class="home-tile-real">Spotify &middot; Real <span class="connected-dot" id="music-dot"></span><span class="sr-only" id="music-dot-text">Not connected</span></p>
+              </div>
+            </div>
+            <p class="home-tile-primary" id="music-track">Nothing playing</p>
+            <div class="vol-bar" aria-hidden="true"><div class="vol-bar__fill" id="music-volume"></div></div>
+            <p class="home-tile-secondary" id="music-meta">volume &mdash;</p>
+          </section>
+
+          <section class="card home-tile" id="home-light" aria-label="Light">
+            <div class="home-tile-head">
+              <span class="acc-icon-circle" id="light-icon-circle" data-accent="yellow">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle class="bulb-glass" cx="12" cy="10" r="6.2"/><path d="M9.2 15.6 L9.2 18.4 A2 2 0 0 0 11.2 20.4 L12.8 20.4 A2 2 0 0 0 14.8 18.4 L14.8 15.6"/><line x1="10" y1="17.2" x2="14" y2="17.2"/></svg>
+              </span>
+              <div>
+                <p class="home-tile-name">Light</p>
+                <p class="home-tile-real">Emulated</p>
+              </div>
+            </div>
+            <p class="home-tile-primary" id="light-state">Off</p>
+            <p class="home-tile-secondary" id="light-meta">&mdash;</p>
+          </section>
+
+          <section class="card home-tile" id="home-thermo" aria-label="Thermostat">
+            <div class="home-tile-head">
+              <span class="acc-icon-circle" data-accent="cyan">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><g class="icon-snowflake-spin"><line x1="12" y1="3.5" x2="12" y2="20.5"/><line x1="4.9" y1="7.75" x2="19.1" y2="16.25"/><line x1="19.1" y1="7.75" x2="4.9" y2="16.25"/><path d="M12 3.5 L10.2 5.3 M12 3.5 L13.8 5.3"/><path d="M12 20.5 L10.2 18.7 M12 20.5 L13.8 18.7"/></g></svg>
+              </span>
+              <div>
+                <p class="home-tile-name">Thermostat</p>
+                <p class="home-tile-real">Emulated</p>
+              </div>
+            </div>
+            <p class="home-tile-primary home-tile-primary--big" id="thermo-setpoint">&mdash;&deg;</p>
+            <p class="home-tile-secondary" id="thermo-room">Room &mdash;</p>
+          </section>
+
+          <section class="card home-tile" id="home-phone" aria-label="Phone">
+            <div class="home-tile-head">
+              <span class="acc-icon-circle" data-accent="green">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><rect class="phone-screen" x="8.4" y="5" width="7.2" height="12.5" rx="0.8" stroke="none"/><line x1="10.2" y1="19" x2="13.8" y2="19"/></svg>
+              </span>
+              <div>
+                <p class="home-tile-name">Phone</p>
+                <p class="home-tile-real">Emulated</p>
+              </div>
+            </div>
+            <p class="home-tile-primary" id="phone-info">No active call</p>
+          </section>
+
+          <section class="card home-tile" id="home-weather" aria-label="Weather">
+            <div class="home-tile-head">
+              <span class="acc-icon-circle" data-accent="cyan">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="9.5" r="3.6"/><path d="M6.5 17.5 A3.6 3.6 0 0 1 6 10.4 A5 5 0 0 1 15.6 9 A3.4 3.4 0 0 1 15 17.5 Z"/></svg>
+              </span>
+              <div>
+                <p class="home-tile-name">Weather &amp; time</p>
+                <p class="home-tile-real">Open-Meteo &middot; Real</p>
+              </div>
+            </div>
+            <p class="home-tile-primary home-tile-primary--big" id="weather-temp">&mdash;&deg;</p>
+            <p class="home-tile-secondary" id="weather-meta">Ask &ldquo;Watson, what&rsquo;s the weather?&rdquo;</p>
+            <p class="home-tile-secondary" id="clock-now">&nbsp;</p>
+          </section>
+        </div>
+      </section>
+
+      <!-- ---------- Timers ---------- -->
+      <section class="view" id="view-timers" data-view="timers" hidden>
+        <div class="timers-grid">
+          <section class="card inset-card" aria-label="Timers">
+            <h2 class="section-header section-header--incard">Timers</h2>
+            <ul class="entry-list" id="timers-only-list"></ul>
+          </section>
+          <section class="card inset-card" aria-label="Alarms">
+            <h2 class="section-header section-header--incard">Alarms</h2>
+            <ul class="entry-list" id="alarms-only-list"></ul>
+          </section>
+          <section class="card inset-card" aria-label="Reminders">
+            <h2 class="section-header section-header--incard">Reminders</h2>
+            <ul class="entry-list" id="reminders-only-list"></ul>
+          </section>
+        </div>
+      </section>
+
+      <!-- ---------- Activity ---------- -->
+      <section class="view" id="view-activity" data-view="activity" hidden>
+        <div class="table-wrap">
+          <table class="activity-table">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Understood as</th>
+                <th scope="col">Command</th>
+                <th scope="col">Confidence</th>
+                <th scope="col">Watson said</th>
+                <th scope="col" aria-label="Play"></th>
+                <th scope="col" aria-label="Mark"></th>
+              </tr>
+            </thead>
+            <tbody id="activity-tbody"></tbody>
+          </table>
+          <p class="table-empty" id="activity-empty">No turns yet.</p>
+        </div>
+      </section>
+
+      <!-- ---------- Diagnostics ---------- -->
+      <section class="view" id="view-diagnostics" data-view="diagnostics" hidden>
+        <div class="diag-grid">
+
+          <section class="card diag-chart-card" aria-label="End-to-end latency">
+            <h2 class="section-header section-header--incard">End&#8209;to&#8209;end latency</h2>
+            <p class="diag-chart-stats"><span id="diag-e2e-p50">p50 &ndash;</span> &middot; <span id="diag-e2e-p90">p90 &ndash;</span></p>
+            <svg class="diag-chart" id="diag-chart-e2e" viewBox="0 0 320 90" preserveAspectRatio="none" tabindex="0" aria-label="End-to-end latency over time, hover or focus for values"></svg>
+            <p class="diag-chart-hover" id="diag-e2e-hover">&nbsp;</p>
+          </section>
+
+          <section class="card diag-chart-card" aria-label="Command model latency">
+            <h2 class="section-header section-header--incard">Command model latency</h2>
+            <p class="diag-chart-stats"><span id="diag-vcm-p50">p50 &ndash;</span> &middot; <span id="diag-vcm-p90">p90 &ndash;</span></p>
+            <svg class="diag-chart" id="diag-chart-vcm" viewBox="0 0 320 90" preserveAspectRatio="none" tabindex="0" aria-label="Command model latency over time, hover or focus for values"></svg>
+            <p class="diag-chart-hover" id="diag-vcm-hover">&nbsp;</p>
+          </section>
+
+          <section class="card diag-chart-card" aria-label="Wake model latency">
+            <h2 class="section-header section-header--incard">Wake model latency</h2>
+            <p class="diag-chart-stats"><span id="diag-wake-p50">p50 &ndash;</span> &middot; <span id="diag-wake-p90">p90 &ndash;</span></p>
+            <svg class="diag-chart" id="diag-chart-wake" viewBox="0 0 320 90" preserveAspectRatio="none" tabindex="0" aria-label="Wake latency over time, hover or focus for values"></svg>
+            <p class="diag-chart-hover" id="diag-wake-hover">&nbsp;</p>
+          </section>
+
+          <section class="card diag-chart-card" aria-label="CPU usage">
+            <h2 class="section-header section-header--incard">CPU</h2>
+            <p class="diag-chart-stats"><span id="diag-cpu-last">&ndash;</span></p>
+            <svg class="diag-chart" id="diag-chart-cpu" viewBox="0 0 320 90" preserveAspectRatio="none" tabindex="0" aria-label="CPU usage over time, hover or focus for values"></svg>
+            <p class="diag-chart-hover" id="diag-cpu-hover">&nbsp;</p>
+          </section>
+
+          <section class="card diag-chart-card" aria-label="RAM usage">
+            <h2 class="section-header section-header--incard">RAM</h2>
+            <p class="diag-chart-stats"><span id="diag-ram-last">&ndash;</span></p>
+            <svg class="diag-chart" id="diag-chart-ram" viewBox="0 0 320 90" preserveAspectRatio="none" tabindex="0" aria-label="RAM usage over time, hover or focus for values"></svg>
+            <p class="diag-chart-hover" id="diag-ram-hover">&nbsp;</p>
+          </section>
+
+          <section class="card diag-chart-card" aria-label="SoC temperature">
+            <h2 class="section-header section-header--incard">SoC temp</h2>
+            <p class="diag-chart-stats"><span id="diag-temp-last">&ndash;</span></p>
+            <svg class="diag-chart" id="diag-chart-temp" viewBox="0 0 320 90" preserveAspectRatio="none" tabindex="0" aria-label="SoC temperature over time, hover or focus for values"></svg>
+            <p class="diag-chart-hover" id="diag-temp-hover">&nbsp;</p>
+          </section>
+
+          <section class="card diag-counters-card" aria-label="Counters">
+            <h2 class="section-header section-header--incard">Counters</h2>
+            <div class="diag-counters">
+              <div class="diag-counter"><span class="diag-counter-label">Turns</span><span class="diag-counter-value" id="diag-turns">0</span></div>
+              <div class="diag-counter"><span class="diag-counter-label">Accuracy</span><span class="diag-counter-value" id="diag-accuracy">&ndash;</span></div>
+              <div class="diag-counter"><span class="diag-counter-label">False wakes</span><span class="diag-counter-value" id="diag-falsewakes">0</span></div>
+              <div class="diag-counter"><span class="diag-counter-label">Rejection rate</span><span class="diag-counter-value" id="diag-rejection">&ndash;</span></div>
+            </div>
+          </section>
+
+          <section class="card diag-counters-card" aria-label="Model facts">
+            <h2 class="section-header section-header--incard">Model facts</h2>
+            <div class="diag-counters" id="diag-model-facts">
+              <div class="diag-counter"><span class="diag-counter-label">Model</span><span class="diag-counter-value" id="diag-model-name">&mdash;</span></div>
+              <div class="diag-counter"><span class="diag-counter-label">Params</span><span class="diag-counter-value" id="diag-model-params">&mdash;</span></div>
+              <div class="diag-counter"><span class="diag-counter-label">Version</span><span class="diag-counter-value" id="diag-model-version">&mdash;</span></div>
+            </div>
+          </section>
+
+          <details class="card system-log" id="system-log">
+            <summary>System log</summary>
+            <ul class="log-list" id="log-list"></ul>
+          </details>
+
+          <section class="card test-panel" id="test-panel" hidden>
+            <h2 class="section-header section-header--incard">Test panel <span class="muted">(sends fake commands)</span></h2>
+            <div class="test-groups" id="test-groups"></div>
+          </section>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ===================== compact bottom tab bar (<1024px) ===================== -->
+  <nav class="tabbar" id="tabbar" aria-label="Views">
+    <a class="tabbar-item" href="#now" data-view="now">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
+      <span>Now</span>
+    </a>
+    <a class="tabbar-item" href="#home" data-view="home">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 L12 5 L20 12"/><path d="M6.5 10.5 L6.5 19.5 L17.5 19.5 L17.5 10.5"/><line x1="9.5" y1="19.5" x2="9.5" y2="14.5"/><line x1="14.5" y1="19.5" x2="14.5" y2="14.5"/></svg>
+      <span>Home</span>
+    </a>
+    <a class="tabbar-item" href="#timers" data-view="timers">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 12 L16 14.5"/></svg>
+      <span>Timers</span>
+    </a>
+    <a class="tabbar-item" href="#activity" data-view="activity">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><line x1="9.5" y1="6.5" x2="20" y2="6.5"/><circle cx="5" cy="12" r="1.1" fill="currentColor" stroke="none"/><line x1="9.5" y1="12" x2="20" y2="12"/><circle cx="5" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><line x1="9.5" y1="17.5" x2="20" y2="17.5"/></svg>
+      <span>Activity</span>
+    </a>
+    <a class="tabbar-item" href="#diagnostics" data-view="diagnostics">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5 A8 8 0 0 1 20 16.5"/><line x1="12" y1="16.5" x2="16" y2="10.5"/><circle cx="12" cy="16.5" r="1.3" fill="currentColor" stroke="none"/></svg>
+      <span>Diagnostics</span>
+    </a>
+  </nav>
+
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

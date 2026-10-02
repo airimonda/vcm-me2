@@ -1,0 +1,25 @@
+# systemd USER service for the VCM-ME2 runtime (wake word -> command model -> Spotify / lights / ...).
+# Needs the user's PipeWire session (echo-cancel source/sink are the defaults for audio in/out), so it runs as
+# the logged-in user, not as a system unit:
+#
+#   mkdir -p ~/.config/systemd/user && cp deploy/vcm-me2.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now vcm-me2
+#   sudo loginctl enable-linger $USER        # start at boot without a login session
+#   journalctl --user -u vcm-me2 -f          # logs
+#
+# Stop a hand-started copy with:  pkill -f "[s]cripts/pi_runtime.py"
+[Unit]
+Description=VCM-ME2 voice assistant (Watson)
+After=network-online.target sound.target pipewire.service pipewire-pulse.service wireplumber.service
+Wants=network-online.target pipewire.service pipewire-pulse.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/vcm-me2
+Environment=PYTHONUNBUFFERED=1
+ExecStart=%h/vcm-me2/.venv/bin/python scripts/pi_runtime.py --config config/runtime.yaml
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

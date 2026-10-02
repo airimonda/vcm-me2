@@ -1,0 +1,13 @@
+# Python dependencies of the on-device runtime (runtime/, scripts/pi_runtime.py). No torch / pandas needed.
+# scripts/pi_setup.sh installs exactly these into .venv on the Pi.
+numpy
+onnxruntime
+sounddevice
+aiohttp
+requests
+pyyaml
+soundfile
+psutil
+# optional: resample non-16 kHz WAVs with scipy (numpy interpolation is used without it)
+# scipy
+# only for scripts/gen_reply_audio.py (run on the Mac): piper-tts

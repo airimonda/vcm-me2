@@ -36,52 +36,14 @@ from scipy.signal import resample_poly
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from runtime.prep import best_window, centre_pad, trim_speech  # noqa: E402,F401
 from vcm.labels import row_to_labels  # noqa: E402
 
 SR = 16000
 WIN_TEST = 5 * SR          # 80,000
 BUF_TRAIN = 6 * SR         # 96,000
-FRAME, HOP = 320, 160      # 20 ms / 10 ms
-PAD_PRE, PAD_POST = int(0.10 * SR), int(0.15 * SR)
-
-
-def trim_speech(x: np.ndarray) -> np.ndarray:
-    """Energy trim. x float32 in [-1,1]. Returns the speech region plus a small pad."""
-    n = len(x)
-    if n < FRAME * 2:
-        return x
-    c = np.concatenate([[0.0], np.cumsum(x.astype(np.float64) ** 2)])
-    starts = np.arange(0, n - FRAME + 1, HOP)
-    e = (c[starts + FRAME] - c[starts]) / FRAME
-    db = 10 * np.log10(e + 1e-12)
-    peak = db.max()
-    if peak < -75:                                    # essentially silent: keep as is
-        return x
-    thr = max(peak - 35.0, np.percentile(db, 10) + 10.0)
-    thr = min(thr, peak - 15.0)
-    act = np.nonzero(db >= thr)[0]
-    if len(act) == 0:
-        return x
-    s = max(starts[act[0]] - PAD_PRE, 0)
-    t = min(starts[act[-1]] + FRAME + PAD_POST, n)
-    return x[s:t]
-
-
-def best_window(x: np.ndarray, length: int) -> np.ndarray:
-    """Highest-energy contiguous window of `length` samples."""
-    if len(x) <= length:
-        return x
-    c = np.concatenate([[0.0], np.cumsum(x.astype(np.float64) ** 2)])
-    e = c[length:] - c[:-length]
-    s = int(np.argmax(e))
-    return x[s: s + length]
-
-
-def centre_pad(x: np.ndarray, length: int) -> tuple[np.ndarray, int]:
-    out = np.zeros(length, dtype=np.int16)
-    s = (length - len(x)) // 2
-    out[s: s + len(x)] = np.clip(np.round(x * 32767.0), -32768, 32767).astype(np.int16)
-    return out, len(x)
+# trim_speech / best_window / centre_pad live in runtime/prep.py (numpy only) so the on-device
+# runtime prepares its command window with the very same code.
 
 
 def process(args):

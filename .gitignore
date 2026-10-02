@@ -15,3 +15,9 @@ __pycache__/
 !models/*.onnx
 !models/ckpt/*.pt
 !models/wake/*.onnx
+
+# on-device runtime
+runtime_logs/
+replies/
+runtime/sounds/
+config/spotify.json

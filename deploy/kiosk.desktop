@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=VCM-ME2 Kiosk
+Comment=Full-screen dashboard of the VCM-ME2 runtime
+Exec=sh -c 'sleep 8 && exec "$(command -v chromium-browser || command -v chromium)" --kiosk --noerrdialogs --disable-infobars --incognito --password-store=basic "http://localhost:8080/?theme=dark"'
+X-GNOME-Autostart-enabled=true
+
+# Copy to ~/.config/autostart/kiosk.desktop on the Pi (scripts/pi_setup.sh --kiosk does it).
+# The sleep gives the vcm-me2 service time to start the dashboard server first.

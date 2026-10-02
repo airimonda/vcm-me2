@@ -1,0 +1,9 @@
+{
+  "client_id": "YOUR_SPOTIFY_APP_CLIENT_ID",
+  "client_secret": "YOUR_SPOTIFY_APP_CLIENT_SECRET",
+  "refresh_token": "WRITTEN_BY_scripts/spotify_auth.py",
+  "redirect_uri": "http://127.0.0.1:8888/callback",
+  "device_name": "Watson",
+  "context_uri": "spotify:playlist:YOUR_PLAYLIST_ID",
+  "shuffle": true
+}

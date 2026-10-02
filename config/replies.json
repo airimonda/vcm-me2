@@ -1,0 +1,273 @@
+{
+ "_readme": [
+  "Reply catalogue: one spoken clip per (key, slot values) combination.",
+  "scripts/gen_reply_audio.py expands each key's slot domains (explicit \"values\" or \"domain\": range:a:b | condition) and renders replies/<file> with Piper.",
+  "File name: <key>__<slot>-<slug(value)>... (runtime/feedback.py clip_basename). A missing clip falls back to espeak-ng at run time.",
+  "Weather clips assume Quezon City; comms clips assume the default contact (config/runtime.yaml comms.contact)."
+ ],
+ "oos_sorry": {
+  "text": "Sorry, I didn't catch that.",
+  "slots": []
+ },
+ "reprompt_unclear": {
+  "text": "Sorry, I didn't get that.",
+  "slots": []
+ },
+ "music_play": {
+  "text": "Playing music.",
+  "slots": []
+ },
+ "music_paused": {
+  "text": "Paused.",
+  "slots": []
+ },
+ "music_stopped": {
+  "text": "Stopped.",
+  "slots": []
+ },
+ "music_next": {
+  "text": "Next song.",
+  "slots": []
+ },
+ "music_volume_up": {
+  "text": "Volume up.",
+  "slots": []
+ },
+ "music_volume_down": {
+  "text": "Volume down.",
+  "slots": []
+ },
+ "music_nothing_playing": {
+  "text": "Nothing is playing.",
+  "slots": []
+ },
+ "music_nothing_queued": {
+  "text": "There's nothing to play yet.",
+  "slots": []
+ },
+ "music_offline": {
+  "text": "I can't reach Spotify.",
+  "slots": []
+ },
+ "music_no_device": {
+  "text": "I can't find the speaker on Spotify.",
+  "slots": []
+ },
+ "music_auth": {
+  "text": "Spotify needs to be set up again.",
+  "slots": []
+ },
+ "music_not_configured": {
+  "text": "Spotify isn't set up yet.",
+  "slots": []
+ },
+ "music_premium": {
+  "text": "Spotify Premium is required.",
+  "slots": []
+ },
+ "music_error": {
+  "text": "Spotify isn't responding.",
+  "slots": []
+ },
+ "lights_on": {
+  "text": "Lights on.",
+  "slots": []
+ },
+ "lights_off": {
+  "text": "Lights off.",
+  "slots": []
+ },
+ "light_brightness": {
+  "text": "Brightness {n} percent.",
+  "slots": [
+   {
+    "name": "n",
+    "values": [
+     20,
+     60,
+     100
+    ]
+   }
+  ]
+ },
+ "light_color": {
+  "text": "Lights {color}.",
+  "slots": [
+   {
+    "name": "color",
+    "values": [
+     "red",
+     "blue",
+     "green"
+    ]
+   }
+  ]
+ },
+ "thermostat_set": {
+  "text": "Thermostat set to {n} degrees.",
+  "slots": [
+   {
+    "name": "n",
+    "values": [
+     18,
+     22,
+     26
+    ]
+   }
+  ]
+ },
+ "thermostat_out_of_range": {
+  "text": "I can set 16 to 30 degrees.",
+  "slots": []
+ },
+ "timer_set": {
+  "text": "Timer set for {amount}.",
+  "slots": [
+   {
+    "name": "amount",
+    "values": [
+     "10 seconds",
+     "30 seconds",
+     "1 minute"
+    ]
+   }
+  ]
+ },
+ "timer_ring": {
+  "text": "Time's up.",
+  "slots": []
+ },
+ "alarm_set": {
+  "text": "Alarm set for {time}.",
+  "slots": [
+   {
+    "name": "time",
+    "values": [
+     "6:00 AM",
+     "8:00 AM",
+     "9:00 PM"
+    ]
+   }
+  ]
+ },
+ "alarm_ring": {
+  "text": "Alarm.",
+  "slots": []
+ },
+ "reminder_saved": {
+  "text": "Reminder saved: {topic}.",
+  "slots": [
+   {
+    "name": "topic",
+    "values": [
+     "drink water",
+     "study",
+     "exercise"
+    ]
+   }
+  ]
+ },
+ "reminder_list_empty": {
+  "text": "You have no reminders.",
+  "slots": []
+ },
+ "reminder_list_header": {
+  "text": "You have {n} reminders.",
+  "slots": [
+   {
+    "name": "n",
+    "domain": "range:1:5"
+   }
+  ]
+ },
+ "reminder_item": {
+  "text": "{topic}.",
+  "slots": [
+   {
+    "name": "topic",
+    "values": [
+     "drink water",
+     "study",
+     "exercise"
+    ]
+   }
+  ]
+ },
+ "comms_call": {
+  "text": "Calling {contact}.",
+  "slots": [
+   {
+    "name": "contact",
+    "values": [
+     "Mom"
+    ]
+   }
+  ]
+ },
+ "comms_message": {
+  "text": "Message to {contact}: I'm on my way.",
+  "slots": [
+   {
+    "name": "contact",
+    "values": [
+     "Mom"
+    ]
+   }
+  ]
+ },
+ "weather": {
+  "text": "It's {temp} degrees and {condition} in Quezon City.",
+  "slots": [
+   {
+    "name": "temp",
+    "domain": "range:15:45"
+   },
+   {
+    "name": "condition",
+    "values": [
+     "clear",
+     "cloudy",
+     "drizzly",
+     "foggy",
+     "mostly clear",
+     "partly cloudy",
+     "rainy",
+     "snowy",
+     "stormy"
+    ]
+   }
+  ]
+ },
+ "weather_offline": {
+  "text": "I can't reach the weather service.",
+  "slots": []
+ },
+ "time_now": {
+  "text": "It's {h}:{mm:02d} {ampm}.",
+  "slots": [
+   {
+    "name": "h",
+    "domain": "range:1:12"
+   },
+   {
+    "name": "mm",
+    "domain": "range:0:59"
+   },
+   {
+    "name": "ampm",
+    "values": [
+     "AM",
+     "PM"
+    ]
+   }
+  ]
+ },
+ "music_volume_max": {
+  "text": "Volume is at maximum.",
+  "slots": []
+ },
+ "music_volume_min": {
+  "text": "Volume is at minimum.",
+  "slots": []
+ }
+}

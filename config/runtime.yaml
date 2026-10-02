@@ -1,0 +1,83 @@
+# Runtime configuration (runtime/config.py merges this over the defaults in DEFAULTS).
+# Relative paths are relative to the repo root. Every key is optional.
+
+model:
+  path: models/vcm_conformer_M_ens3.onnx   # sidecar JSON (labels, slot values, tau) sits next to it
+  tau: null                                # null = use tau from the sidecar (0.40); a number overrides it
+  intra_threads: 2                         # onnxruntime threads for the command model (allow_spinning is always off)
+
+wake:
+  enabled: true
+  path: models/wake/vcm_wake_int8.onnx          # int8 build; fp32 = vcm_wake.onnx. Labels: <stem>.labels.json next to it (["WATSON","OTHER"])
+  threshold: 0.55                          # WATSON softmax prob on a single 1.5 s window
+  consecutive: 1                           # windows in a row above threshold (1 = single window)
+  hop_s: 0.25                              # score the last 1.5 s every 0.25 s
+  cooldown_s: 1.0                          # ignore wakes this long after a command finished
+  intra_threads: 1
+
+audio:
+  backend: auto                            # auto | sounddevice | arecord
+  device: null                             # null = system default (PipeWire echo-cancel source on the Pi)
+  block_ms: 100
+  play: true                               # false = never make a sound (tests / headless)
+  earcon_volume: 0.15                      # synthesised chime amplitude; no guard after the chime (it cut off the first word)
+
+capture:                                   # command capture after the wake word
+  max_s: 5.0
+  min_s: 0.8
+  end_silence_s: 0.7                       # stop this long after speech ended
+  no_speech_timeout_s: 3.0                 # nothing but silence for this long -> give up (counts as a false wake)
+  start_ignore_s: 0.25                     # speech-START detection ignores this long (chime / tail of "Watson"); audio is kept
+  margin_db: 10.0                          # speech = frame energy this far above the noise floor
+  min_db: -55.0                            # absolute floor for the speech threshold (dBFS)
+  min_speech_s: 0.12
+
+dispatcher:
+  oos_reply: sorry                         # sorry = say "Sorry, I didn't catch that." | silent
+  ducking: true                            # lower the music when the wake word fires, restore after the command
+  duck_to: 20                              # Spotify volume (%) while ducked (never raises the volume)
+
+mock:                                      # true = emulated device (no hardware / network)
+  light: true                              # the BLE bulb is emulated (shown on the dashboard); no real driver
+  aircon: true                             # thermostat is emulated
+  spotify: false                           # true = in-memory music player, no Spotify account needed
+
+music:                                     # Spotify Web API -> Spotify Connect device on the Pi (raspotify)
+  credentials: config/spotify.json         # client_id, client_secret, refresh_token (+ optional overrides, see example)
+  device_name: Watson                      # LIBRESPOT_NAME in /etc/raspotify/conf
+  context_uri: null                        # playlist/album URI to start when nothing is queued (spotify:playlist:...)
+  shuffle: true
+  volume_step: 15
+  poll_s: 5.0                              # now-playing refresh for the dashboard (0 = off)
+  timeout_s: 4.0
+
+comms:
+  contact: Mom                             # the model has no contact slot: CALL / MESSAGE always go here
+  message_text: I'm on my way
+
+thermostat:
+  min: 16
+  max: 30
+  start_room_temp: 28.0
+  drift_period_s: 120                      # simulated room temp moves 1 C toward the setpoint this often
+
+weather:
+  city: Quezon City
+  latitude: 14.676
+  longitude: 121.0437
+  timeout_s: 3.0
+
+clock:
+  timezone: null                           # e.g. Asia/Manila; null = the Pi's system timezone
+
+replies:
+  dir: replies                             # pre-rendered clips (scripts/gen_reply_audio.py); espeak-ng if a clip is missing
+  catalogue: config/replies.json
+
+ui:
+  enabled: true
+  host: 0.0.0.0
+  port: 8080
+
+metrics:
+  dir: runtime_logs                        # one folder per run: runtime_logs/<YYYYmmdd-HHMMSS>/
