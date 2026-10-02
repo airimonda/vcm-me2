@@ -128,8 +128,16 @@ device on the Pi** (raspotify / librespot). A Spotify **Premium** account is req
    cp deploy/librespot.service ~/.config/systemd/user/ && systemctl --user daemon-reload
    systemctl --user enable --now librespot
    ```
-   Pick "Watson" once from the Spotify app on a phone: librespot caches the login in `~/.cache/librespot`, after
-   which the device stays listed in the Web API's device list. The system-wide alternative is raspotify itself:
+   Sign the player in once. Picking "Watson" in the Spotify app needs zeroconf, which a router with client
+   isolation blocks; the route used on the demo Pi is device pairing, which needs no browser on the Pi:
+   ```
+   systemctl --user stop librespot
+   ~/.local/bin/librespot --name Watson --backend pulseaudio --cache ~/.cache/librespot --enable-device-auth
+   # open the printed https://spotify.com/pair?code=XXXXXX, approve, wait for "Authenticated as ...", Ctrl+C
+   systemctl --user start librespot
+   ```
+   librespot caches the login in `~/.cache/librespot/credentials.json`, after which "Watson" stays listed in the
+   Web API's device list. The system-wide alternative is raspotify itself:
    ```
    curl -sL https://dtcooper.github.io/raspotify/install.sh | sh
    sudo nano /etc/raspotify/conf        # set LIBRESPOT_NAME="Watson"  (must equal music.device_name)
