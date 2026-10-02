@@ -399,7 +399,7 @@
 
   var MUSIC_ERRORS = {
     offline: "Can't reach Spotify", auth: "Spotify needs setup", not_configured: "Spotify not set up",
-    no_device: "Speaker not found on Spotify", premium: "Spotify Premium required", api: "Spotify error"
+    no_device: "Speaker not found on Spotify", premium: "Spotify Premium required", api: "Spotify error", server: "Spotify not responding"
   };
 
   function renderMusic(m) {

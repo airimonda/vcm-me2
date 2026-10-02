@@ -323,3 +323,21 @@ def test_liked_resolves_to_collection_and_resumes_when_loaded():
     assert c.resolved_context() == "spotify:user:u1:collection"
     assert c.resolved_context() == "spotify:user:u1:collection"
     assert sum(1 for m, p, _ in c.calls if p == "/me") == 1          # cached after the first lookup
+
+
+def test_server_error_is_retried():
+    from runtime.actuators.spotify import SpotifyClient
+
+    class C(SpotifyClient):
+        def __init__(self):
+            self.n = 0
+            self._sleep = lambda s: None
+
+    c = C()
+
+    def flaky():
+        c.n += 1
+        if c.n == 1:
+            raise SpotifyError("server", "PUT /me/player/play -> 502")
+        return "ok"
+    assert c._retry_no_device(flaky) == "ok" and c.n == 2

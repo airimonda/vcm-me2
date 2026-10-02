@@ -48,6 +48,7 @@ ERROR_REPLY = {
     "nothing_playing": "music_nothing_playing",
     "premium": "music_premium",
     "api": "music_error",
+    "server": "music_error",
 }
 
 
@@ -167,6 +168,8 @@ class SpotifyClient:
             raise SpotifyError("no_device", msg or reason or "404")
         if sc == 429:
             raise SpotifyError("api", f"rate limited, retry after {r.headers.get('Retry-After', '?')} s")
+        if sc >= 500:                                              # Spotify / Connect device hiccup: retryable
+            raise SpotifyError("server", f"{method} {path} -> {sc} {msg}")
         raise SpotifyError("api", f"{method} {path} -> {sc} {msg}")
 
     # -- devices / state ------------------------------------------------------------
@@ -222,6 +225,9 @@ class SpotifyClient:
         try:
             return fn(self._dev())
         except SpotifyError as e:
+            if e.kind == "server":                      # transient 5xx: one retry after a moment
+                self._sleep(1.0)
+                return fn(self._dev())
             if e.kind != "no_device":
                 raise
             self._device_id = None
@@ -269,9 +275,9 @@ class SpotifyClient:
             try:
                 return fn()
             except SpotifyError as e:
-                if e.kind != "no_device" or i == tries - 1:
+                if e.kind not in ("no_device", "server") or i == tries - 1:
                     raise
-                self._sleep(0.5)
+                self._sleep(0.5 if e.kind == "no_device" else 1.0)   # a just-started librespot needs a moment
 
     def pause(self) -> dict:
         try:
@@ -488,6 +494,7 @@ class MusicActuator(Actuator):
                 m["connected"] = False
                 m["playing"] = False
             self.notify()
+            log.warning("spotify %s failed: %s %s", getattr(e, "kind", ""), type(e).__name__, e)
             resp = Response(say=ERROR_REPLY.get(e.kind, "music_error"), ok=False, data={"error": e.kind})
         resp.data["_spotify_start"], resp.data["_spotify_done"] = t0, time.perf_counter()
         return resp
