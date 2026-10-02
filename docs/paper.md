@@ -33,7 +33,7 @@ We treat this as a classification problem rather than a transcription problem. G
 3. Ablations of the misfire regularisation, its weight and the augmentation preset, all selected on a speaker-disjoint *tune* split rather than on the test split (Section 7c).
 4. A strict account of which split was used for which decision, including two places where the test split was looked at more than the ideal protocol allows (Section 6).
 
-**What this paper does not claim.** Pi latency was measured on a Raspberry Pi 4 only, with a synthetic input, not inside the full live pipeline (Section 8). The live test on the reserved holdout split has not been run. Real-voice accuracy is substantially lower than accuracy on synthetic voices (Section 9).
+**What this paper does not claim.** Pi results come from a Raspberry Pi 4 only (no Pi 5). The model-only latency in Section 8 uses a synthetic input; the live holdout test (Section 8.x) runs the full pipeline but feeds the audio straight into the runtime with added air-conditioner noise rather than through a loudspeaker and room, and its wake-word results rest on one speaker's "Watson" takes. Real-voice accuracy is substantially lower than accuracy on synthetic voices (Section 9).
 
 ---
 
