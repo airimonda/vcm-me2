@@ -470,7 +470,13 @@
   }
 
   function renderWeather(w) {
-    if (!w) return;
+    if (!w) {                       // no weather asked yet (e.g. after a boot): blank tile, not a stale answer
+      els.weatherTemp.textContent = "\u2014\u00b0";
+      els.weatherMeta.textContent = "Ask \u201cWatson, what\u2019s the weather?\u201d";
+      els.accWeatherState.textContent = "Ask Watson";
+      els.accWeather.classList.remove("is-on");
+      return;
+    }
     els.weatherTemp.textContent = (typeof w.temp === "number" ? w.temp : "—") + "°";
     els.weatherMeta.textContent = (w.condition || "") + (w.city ? " · " + w.city : "");
     els.accWeatherState.textContent = (typeof w.temp === "number" ? w.temp + "° " : "") + (w.condition || "");
