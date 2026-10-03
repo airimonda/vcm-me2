@@ -1,0 +1,13 @@
+# systemd USER service: set the speaker volume to 70 % at boot (scripts/pi_boot_volume.sh).
+#   cp deploy/vcm-volume.service ~/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now vcm-volume
+[Unit]
+Description=Set speaker volume to 70% at boot
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Wants=pipewire-pulse.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash %h/vcm-me2/scripts/pi_boot_volume.sh 70% 180
+
+[Install]
+WantedBy=default.target

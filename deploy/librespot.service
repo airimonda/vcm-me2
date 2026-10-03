@@ -12,9 +12,17 @@ Wants=network-online.target pipewire-pulse.service
 
 [Service]
 Type=simple
+# Wait for the network, then sign in a throw-away player for ~12 s. After an unclean shutdown (power cut) Spotify keeps
+# a stale session for "Watson" and answers every play / pause with 500 / 502; a different device taking over the
+# account's session clears it, so the real "Watson" below registers cleanly. Failures here never block the start.
+ExecStartPre=-/bin/sh -c 'for i in $(seq 30); do getent hosts apresolve.spotify.com >/dev/null && break; sleep 2; done'
+ExecStartPre=-/usr/bin/timeout 12 %h/.local/bin/librespot --name WatsonReset --device-type speaker --backend pulseaudio \
+  --cache %h/.cache/librespot --disable-audio-cache --disable-discovery
+ExecStartPre=/bin/sleep 5
 ExecStart=%h/.local/bin/librespot --name Watson --device-type speaker --backend pulseaudio \
-  --bitrate 160 --initial-volume 60 --enable-volume-normalisation --cache %h/.cache/librespot \
+  --bitrate 160 --initial-volume 70 --enable-volume-normalisation --cache %h/.cache/librespot \
   --disable-audio-cache
+TimeoutStartSec=120
 Restart=on-failure
 RestartSec=5
 

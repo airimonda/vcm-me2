@@ -248,23 +248,41 @@ class SpotifyClient:
         dev = self.find_device()                      # fresh: is it listed, is it the active device?
         st = self.playback()
         has_item = bool(st and st.get("item"))
-        if not dev.get("is_active"):
+        transferred = not dev.get("is_active")
+        if transferred:
             self._request("PUT", "/me/player", body={"device_ids": [dev["id"]], "play": False})
         body = None
         ctx = self.resolved_context()
         loaded = ((st or {}).get("context") or {}).get("uri")
         if ctx and not (has_item and loaded == ctx):
             body = {"context_uri": ctx}
-            if self.shuffle:
-                self._retry_no_device(lambda: self._request("PUT", "/me/player/shuffle",
-                                                            params={"state": "true", "device_id": dev["id"]}))
+        def _play():
+            return self._request("PUT", "/me/player/play", params={"device_id": dev["id"]}, body=body)
         try:
-            self._retry_no_device(lambda: self._request("PUT", "/me/player/play",
-                                                        params={"device_id": dev["id"]}, body=body))
+            try:
+                self._retry_no_device(_play)
+            except SpotifyError as e:
+                # right after a transfer (or a fresh librespot start) Spotify answers "Restriction violated" for a few
+                # seconds until the device is ready; keep trying for ~6 s
+                if e.kind != "restricted" or not (transferred or body):
+                    raise
+                for i in range(4):
+                    self._sleep(1.5)
+                    try:
+                        self._retry_no_device(_play)
+                        break
+                    except SpotifyError as e2:
+                        if e2.kind != "restricted" or i == 3:
+                            raise
         except SpotifyError as e:
             if e.kind in ("no_device", "restricted") and not body:
                 raise SpotifyError("nothing_queued", "nothing to resume and no context_uri configured")
             raise
+        if body and self.shuffle:          # after play: a just-started device rejects shuffle ("Restriction violated")
+            try:
+                self._request("PUT", "/me/player/shuffle", params={"state": "true", "device_id": dev["id"]})
+            except SpotifyError:
+                pass                       # shuffle is a nicety; never fail "play music" over it
         self.last_playing = True
         return {"connected": True, "playing": True, "paused": False, "device": self.device_name,
                 "volume": self.last_volume, "error": None}      # the track shows up on the next refresh

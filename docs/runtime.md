@@ -169,6 +169,18 @@ clips' own duck; a VOLUME command during a turn changes the level that is restor
 Premium errors become a spoken reply and a message on the Music tile. Without credentials the runtime still starts
 and answers "Spotify isn't set up yet." to music commands.
 
+
+**After a power cut.** Spotify can keep a stale session for the "Watson" device, and then answers every play / pause
+with 500 / 502 even though the device is listed. `deploy/librespot.service` therefore signs in a throw-away player
+(`WatsonReset`) for about 12 s before starting the real one (with a 5 s gap); a different device taking over the
+account's session clears the stale one. `play()` starts playback first and sets shuffle afterwards (a just-started
+device answers "Restriction violated" to shuffle), and retries play for ~6 s if Spotify answers "Restriction violated"
+right after a hand-over.
+
+**Volume at boot.** `deploy/vcm-volume.service` runs `scripts/pi_boot_volume.sh`: the real outputs (Bluetooth speaker,
+built-in jack) go to 70 % and the echo-cancel sink stays at 100 %. It watches for 3 minutes, so a Bluetooth speaker that
+connects late is covered; librespot starts at volume 70.
+
 ## Setting up the Pi
 
 The Mac is the source of truth. Nothing here is run automatically against the Pi.
