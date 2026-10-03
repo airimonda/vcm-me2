@@ -676,6 +676,8 @@ real-versus-synthetic gap as on test (Section 7e).
 
 ## 10 Reproducibility
 
+**One command.** `bash scripts/reproduce.sh` downloads everything from the Hugging Face dataset, rebuilds the packs and the tune split, trains the three seeds, exports the ensemble, scores it on test and writes a comparison with the published numbers to `repro/compare.md` (`--check`: score the released model only; `--full`: also the bake-off, the ablations and the baseline). The steps it runs are listed below.
+
 Everything is in the repository (tag `v1.0`). Dataset: `airimonda/ai231-me2-voice-commands`. Seeds are 0, 1 and 2 throughout; the tune split uses `--seed 0 --frac 0.15`; negatives use `--seed 0`; calibration uses seed 0. Training is deterministic up to cuDNN and hardware differences, so a re-run on another GPU may differ in the last digits.
 
 **Setup.**
@@ -709,7 +711,7 @@ python scripts/pack_data.py --negatives <synthetic_negatives folder>          # 
 python scripts/pack_data.py --dataset data/tune_oos_src --splits tune_oos --out data/packs   # eval-only
 ```
 
-The negatives folder (`train/` and `test/` with `manifest.csv` and `audio/`) can be regenerated deterministically with `python scripts/make_negatives.py --dataset ~/me2-dataset --noise data/noise --out <folder> --n-train 1000 --n-test 250 --seed 0`. The released `synthetic_negatives` configuration holds the copy used here; converting it to the folder layout is not covered by `hf_to_dataset.py`. `scripts/make_tune_oos.py` needs the project's collated pool (`pool.csv`), which is not part of the public release, so the `tune_oos` set cannot be rebuilt from the public data alone.
+The negatives folder (`train/` and `test/` with `manifest.csv` and `audio/`) can be regenerated deterministically with `python scripts/make_negatives.py --dataset ~/me2-dataset --noise data/noise --out <folder> --n-train 1000 --n-test 250 --seed 0`. The released `synthetic_negatives` configuration holds the copy used here, and `hf_to_dataset.py` converts it to the folder layout. `scripts/make_tune_oos.py` needs the project's collated pool (`pool.csv`), which is not public, so the `tune_oos` set cannot be rebuilt from scratch; the set itself is published as the `tune_oos` split of `synthetic_negatives`, next to the `noise` split with the augmentation noise files.
 
 **3. Tune split.**
 

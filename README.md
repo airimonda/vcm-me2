@@ -125,6 +125,21 @@ that is not part of the model). Streaming or untrimmed microphone input has not 
 
 ## Reproduce
 
+Everything the pipeline needs is in the public dataset
+([`airimonda/ai231-me2-voice-commands`](https://huggingface.co/datasets/airimonda/ai231-me2-voice-commands):
+the gold splits, plus `synthetic_negatives` with its `train`, `test`, `noise` and `tune_oos` splits). One command:
+
+```bash
+bash scripts/reproduce.sh --check    # ~2 min, CPU: download test, score the released ensemble, compare
+bash scripts/reproduce.sh            # ~1 GPU-hour: download, pack, tune split, train 3 seeds, export, score, compare
+bash scripts/reproduce.sh --full     # ~5 GPU-hours: also both bake-off rounds, the ablations, the DS-CNN baseline
+```
+
+Outputs go to `data/` and `repro/`; the committed `models/` and `results/` are never overwritten. The comparison
+with the published numbers is `repro/compare.md`. `--check` reproduces the published test metrics exactly; a
+retrain on another GPU can differ in the last digits. `SMOKE=1` runs the whole path on 600 clips for 2 epochs
+(pipeline test only). Environment variables: `PY`, `DEVICE`, `NUM_WORKERS`, `DATA_DIR`, `PACK_DIR`.
+
 Step-by-step commands (dataset download, packing, tune split, bake-off, final recipe, tau report, export, quantise,
 final test, figures) are in [`docs/paper.md`, Section 10](docs/paper.md#10-reproducibility). The final recipe is
 
