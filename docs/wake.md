@@ -46,7 +46,7 @@ that condition, close to the 48% seen live. The simulated chain is therefore use
 Phrases containing "Watson" (for example "Watsonville") are not used as negatives. The tune negatives are
 concatenated into one 1.79 h stream for the false-wake measurement.
 
-**Data discipline.** The command model's test, holdout and validation sets are never used:
+**Data discipline.** The command model's test, holdout and validation (tune, itself a slice of train) sets are never used. One exception, disclosed: the final wake model was resumed from a checkpoint whose first 3 epochs ran before this filtering, on data that included the command model's tune clips and up to 481 public-corpus clips whose transcript matched a test / holdout / tune clip, all as "not Watson" negatives. All later epochs used the filtered data. The rules:
 
 * only the command packs' train rows are read (the trainer refuses any other pack);
 * old real negatives whose dataset and normalised transcript, or CommonVoice speaker, appear in the command

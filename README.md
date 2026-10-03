@@ -150,6 +150,19 @@ python -m vcm.train --arch conformer --tier M --seed 0 --select-split tune --use
 python -m vcm.export export --ckpt a.pt+b.pt+c.pt --out models/vcm_conformer_M_ens3.onnx --tau 0.40 --pack data/packs
 ```
 
+**Which data was used for what.** No test or holdout clip was used for training or for any choice after the
+architecture bake-off. **tune is part of train, not of test or holdout**: it is 1,553 clips carved out of the train
+split, and it shares no speaker with test, with holdout, or with the 9,180 train clips the model was fitted on
+(`python scripts/check_splits.py --pack-dir data/packs` checks this: 0 shared speakers everywhere).
+
+| Split | Clips | Used for |
+| --- | ---: | --- |
+| train, fitted part | 9,180 (+ 778 synthetic negatives) | Training the weights |
+| tune (slice of train) | 1,553 (+ 116 negatives) | Best epoch, early stopping, misfire weight, augmentation, ensembling, τ |
+| tune_oos (speakers in no other split) | 400 | Evaluation only: with tune, sets τ |
+| test | 4,443 (+ 250 negatives) | Final report; also scored during bake-off rounds 1-2, before tune existed (disclosed in the paper) |
+| holdout | 202 | Live Raspberry Pi test only |
+
 Splits are called **train**, **tune**, **test** and **holdout**. **tune** is a speaker-disjoint ~15% slice of
 train; *every* choice (checkpoint, early stopping, hyper-parameters, reject threshold tau, misfire weight,
 architecture, ablations) is made on tune, and the model is fitted on the rest of train. **test** is scored once, at
