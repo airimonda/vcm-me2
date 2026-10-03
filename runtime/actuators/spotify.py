@@ -575,6 +575,11 @@ class MusicActuator(Actuator):
         except Exception as e:                     # ducking must never break a turn
             log.warning("duck/unduck failed: %s", e)
 
+    def pause_quietly(self):
+        """pause in the background, ignoring errors (start-up: nothing may be playing, Spotify may not be ready)"""
+        if self.player is not None:
+            self._pool.submit(self._safe, self.player.pause)
+
     def is_playing(self):
         return bool(self.player and self.player.is_playing())
 

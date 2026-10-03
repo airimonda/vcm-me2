@@ -8,7 +8,7 @@ rebuilt, how the new one is trained and tuned, and how it is validated on the Pi
 ## Why: the first live holdout run
 
 The first live run of the class benchmark (`vcm-benchmark`, run `20261002-182511`; laptop speaker about 1 m
-from the Pi, 196 holdout commands with the wake word plus 10 without) gave:
+from the Pi, 196 holdout commands with the wake word plus 10 holdout commands replayed without it, so 10 clips are heard twice) gave:
 
 | Measure | Value |
 | --- | ---: |

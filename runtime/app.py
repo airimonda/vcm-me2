@@ -110,6 +110,8 @@ class Runtime:
 
     # -- background tasks -----------------------------------------------------------------
     async def start_background(self, ui=True, port=None):
+        if self.cfg["music"].get("pause_on_start") and hasattr(self.music, "pause_quietly"):
+            self.music.pause_quietly()            # boot: dashboard and speaker start with the music off
         self.music.start_polling(self.state)
         self._tasks.append(asyncio.ensure_future(self.metrics.sampler_loop(bus=self.bus, is_playing=self.music.is_playing)))
         self._tasks.append(asyncio.ensure_future(self.inbound_loop()))

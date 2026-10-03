@@ -43,14 +43,15 @@ paper. On a Raspberry Pi 4 the fp32 ensemble takes 89 ms per 5-s window on one c
 | Test | unseen | 4,443 | 94.3% | 94.6% | 73.8% (824) | 98.9% (3,619) | 9.2% (7 of 76) | 4.0% |
 | Holdout, live on the Pi | unseen | 196 + 10 | 90.3% * | 90.8% * | 81.2% / 82.3% * (96) | 99.0% (100) | 20% (2 of 10) | 7.0% |
 
-\* Holdout runs the whole assistant on the Pi (wake word, capture, model), so its numbers include wake-word misses;
+\* Holdout runs 196 clips with the wake word plus 10 of those holdout commands replayed without it (false-wake check), so 10
+clips are heard twice. It runs the whole assistant on the Pi (wake word, capture, model), so its numbers include wake-word misses;
 "accuracy" there is the benchmark's 93-command accuracy and "command acc." its 19-intent accuracy; human column:
 command / intent. Train, tune and test: `results/final/vcm_conformer_M_ens3_{fit,tune,test}/metrics.json` (human
 and synthetic counts leave out clips with no voice flag); holdout: `results/pi_holdout/`. Tune chose every setting
 after the architecture bake-off, so it is not an independent estimate; the train-to-test gap on human voices
 (96.7% vs 73.8%) is the main weakness.
 
-**Live on a Raspberry Pi 4** (class benchmark, holdout split, 196 + 10 trials, injected audio with air-conditioner
+**Live on a Raspberry Pi 4** (class benchmark, holdout split, 196 + 10 trials; the 10 are holdout commands replayed without the wake word, injected audio with air-conditioner
 noise at 10 dB, wake model v2): intent accuracy 90.8% (real voices 82.3%, synthetic 99.0%), wake word detected in
 99.0% of trials, 2 of 10 out-of-scope clips accepted, 1 false wake in 10, latency p95 1.72 s, inference 76 ms
 (RTF 0.015). The first run with a loudspeaker and the old wake model reached 46.9%, limited by the wake word. See

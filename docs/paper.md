@@ -625,7 +625,9 @@ All four variants run far faster than real time: the released ensemble needs 89 
 clips: 186 commands over the 93 phrasings, 10 out-of-scope), was run through the class benchmark, [`vcm-benchmark`](https://github.com/airimonda/vcm-benchmark), against the
 full runtime on the Raspberry Pi 4 (wake word, capture and endpointing, command model, dispatcher). The laptop
 builds one trial per clip: a recorded "Watson" take, a 0.8 s pause, then the holdout command. It adds 10 commands
-without the wake word (false-wake check) and shuffles all 206 trials with a seed. Trials are spaced 10-15 s
+without the wake word (false-wake check). **These 10 are holdout commands too**: the benchmark draws them from the
+same holdout set and plays them a second time without "Watson" (one per intent where possible), so 10 holdout clips are
+heard twice, once after the wake word and once without it. All 206 trials are shuffled with a seed. Trials are spaced 10-15 s
 apart (the benchmark's default gap). The runtime writes
 one JSON line per decision to `logs/live.log`, which the benchmark reads over SSH while sampling the Pi's
 CPU, RAM, clock, temperature and throttling once per second.

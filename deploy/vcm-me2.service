@@ -17,7 +17,9 @@ Wants=network-online.target pipewire.service pipewire-pulse.service
 Type=simple
 WorkingDirectory=%h/vcm-me2
 Environment=PYTHONUNBUFFERED=1
-ExecStart=%h/vcm-me2/.venv/bin/python scripts/pi_runtime.py --config config/runtime.yaml
+# --fresh-state: every boot starts with the light and AC off and no reminders / timers / alarms (music is paused by
+# music.pause_on_start in config/runtime.yaml)
+ExecStart=%h/vcm-me2/.venv/bin/python scripts/pi_runtime.py --config config/runtime.yaml --fresh-state
 Restart=on-failure
 RestartSec=3
 
