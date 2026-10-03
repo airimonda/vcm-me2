@@ -64,7 +64,7 @@ noise at 10 dB, wake model v2): intent accuracy 90.8% (real voices 82.3%, synthe
 * [`docs/wake.md`](docs/wake.md) - the "Watson" wake word: why it was rebuilt after the first live run, data, training, tuning for high recall, validation on the Pi.
 * Figures: `docs/figures/` (made by `scripts/make_figures.py` from `results/`; needs matplotlib).
 
-Dataset: [`airimonda/ai231-me2-voice-commands`](https://huggingface.co/datasets/airimonda/ai231-me2-voice-commands) on the Hugging Face Hub (default config `train` / `test` / `holdout`; config `synthetic_negatives`).
+Dataset: [`airimonda/ai231-me2-voice-commands`](https://huggingface.co/datasets/airimonda/ai231-me2-voice-commands) on the Hugging Face Hub (DOI [10.57967/hf/10723](https://doi.org/10.57967/hf/10723); per-source licences, research and education only) (default config `train` / `test` / `holdout`; config `synthetic_negatives`).
 
 ## Released files (tag `v1.0`)
 
