@@ -20,7 +20,7 @@ ExecStartPre=-/usr/bin/timeout 12 %h/.local/bin/librespot --name WatsonReset --d
   --cache %h/.cache/librespot --disable-audio-cache --disable-discovery
 ExecStartPre=/bin/sleep 5
 ExecStart=%h/.local/bin/librespot --name Watson --device-type speaker --backend pulseaudio \
-  --bitrate 160 --initial-volume 70 --enable-volume-normalisation --cache %h/.cache/librespot \
+  --bitrate 160 --initial-volume 100 --enable-volume-normalisation --cache %h/.cache/librespot \
   --disable-audio-cache
 TimeoutStartSec=120
 Restart=on-failure

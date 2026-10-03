@@ -177,7 +177,7 @@ account's session clears the stale one. `play()` starts playback first and sets 
 device answers "Restriction violated" to shuffle), and retries play for ~6 s if Spotify answers "Restriction violated"
 right after a hand-over.
 
-**Volume at boot.** Music starts at 70 % (librespot `--initial-volume 70`); the assistant's voice plays at full volume:
+**Volume at boot.** Music starts at 100 % (librespot `--initial-volume 100`) and the assistant's voice plays at full volume:
 `deploy/vcm-volume.service` runs `scripts/pi_boot_volume.sh 100%`, which sets the real outputs (Bluetooth speaker,
 built-in jack) and the echo-cancel sink to 100 %. It watches for 3 minutes, so a Bluetooth speaker that connects late is
 covered.

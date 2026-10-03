@@ -1,8 +1,8 @@
 # systemd USER service: speaker outputs to 100 % at boot (scripts/pi_boot_volume.sh), so the assistant's voice is at full
-# volume; music volume is librespot's own (--initial-volume 70 in librespot.service).
+# volume; music volume is librespot's own (--initial-volume 100 in librespot.service).
 #   cp deploy/vcm-volume.service ~/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now vcm-volume
 [Unit]
-Description=Set speaker outputs to 100% at boot (music: librespot 70)
+Description=Set speaker outputs to 100% at boot (music: librespot 100)
 After=pipewire.service pipewire-pulse.service wireplumber.service
 Wants=pipewire-pulse.service
 
