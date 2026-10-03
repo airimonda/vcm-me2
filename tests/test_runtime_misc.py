@@ -21,11 +21,25 @@ def test_default_config_file_matches_defaults_and_points_at_the_released_models(
     assert cfg == load_config(None, {}) and (ROOT / cfg["model"]["path"]).exists()
     assert (ROOT / cfg["model"]["path"]).with_suffix(".json").exists()
     assert cfg["model"]["path"] == "models/vcm_conformer_M_ens3.onnx" and cfg["model"]["tau"] is None
-    assert cfg["wake"]["path"] == "models/wake/vcm_wake_int8.onnx" and cfg["wake"]["threshold"] == 0.55
+    assert cfg["wake"]["path"] == "models/wake/vcm_wake_v2.onnx" and cfg["wake"]["threshold"] == 0.70
+    assert cfg["wake"]["threshold_music"] == 0.50
     assert cfg["wake"]["hop_s"] == 0.25 and (ROOT / cfg["wake"]["path"]).exists()
     assert cfg["audio"]["earcon_volume"] == 0.15
     assert cfg["music"]["device_name"] == "Watson"
     assert set(cfg) == set(DEFAULTS)
+
+
+def test_wake_threshold_is_lower_while_music_plays():
+    from types import SimpleNamespace
+    from runtime.app import Runtime
+    playing = {"v": False}
+    rt = SimpleNamespace(cfg={"wake": {"threshold": 0.70, "threshold_music": 0.50}},
+                         music=SimpleNamespace(is_playing=lambda: playing["v"]))
+    assert Runtime.wake_threshold(rt) == 0.70
+    playing["v"] = True
+    assert Runtime.wake_threshold(rt) == 0.50
+    rt.cfg["wake"]["threshold_music"] = None
+    assert Runtime.wake_threshold(rt) == 0.70
 
 
 def test_overrides_and_missing_file(tmp_path):

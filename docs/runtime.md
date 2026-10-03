@@ -177,6 +177,8 @@ account's session clears the stale one. `play()` starts playback first and sets 
 device answers "Restriction violated" to shuffle), and retries play for ~6 s if Spotify answers "Restriction violated"
 right after a hand-over.
 
+**Wake word over music.** The echo canceller removes 30-40 dB of the music once adapted (measured on the Pi with Spotify at 100 %), but it also damps the user's voice while both play, so the wake word scores lower. `wake.threshold_music` (0.50) replaces `wake.threshold` (0.70) while Spotify is playing.
+
 **Volume at boot.** Music starts at 100 % (librespot `--initial-volume 100`) and the assistant's voice plays at full volume:
 `deploy/vcm-volume.service` runs `scripts/pi_boot_volume.sh 100%`, which sets the real outputs (Bluetooth speaker,
 built-in jack) and the echo-cancel sink to 100 %. It watches for 3 minutes, so a Bluetooth speaker that connects late is

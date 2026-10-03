@@ -10,6 +10,7 @@ wake:
   enabled: true
   path: models/wake/vcm_wake_v2.onnx       # v2 (docs/wake.md), fp32; the old model is vcm_wake_int8.onnx (threshold 0.55)
   threshold: 0.70                          # WATSON softmax prob on a single 1.5 s window; high recall, picked on the wake tune set
+  threshold_music: 0.50                    # used while music plays (the echo canceller also damps your voice then)
   consecutive: 1                           # windows in a row above threshold (1 = single window)
   hop_s: 0.25                              # score the last 1.5 s every 0.25 s
   cooldown_s: 1.0                          # ignore wakes this long after a command finished

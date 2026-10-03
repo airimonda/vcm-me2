@@ -257,6 +257,17 @@ class Runtime:
         resp, _ = await self.handle_command(cmd, turn, audio=window)
         return cmd, resp
 
+    def wake_threshold(self) -> float:
+        """wake.threshold, or wake.threshold_music while music is playing: the echo canceller also damps the user's
+        voice when it talks over the music, so the wake word scores lower then"""
+        w = self.cfg["wake"]
+        tm = w.get("threshold_music")
+        try:
+            playing = tm is not None and self.music.is_playing()
+        except Exception:
+            playing = False
+        return float(tm) if playing else float(w["threshold"])
+
     async def run_stream(self, source, use_wake=True, noise_db=None, once=False):
         """Drive the runtime from an audio Source until it ends (WAV) or forever (mic).
 
@@ -278,6 +289,7 @@ class Runtime:
                 if det is not None:
                     event = None
                     while event is None:
+                        det.threshold = self.wake_threshold()
                         event = det.feed(await it.__anext__())
                     turn.mark("wake_done", event.t_done)
                     self.live_log({"event": "wake", "msg": "wake word detected"})

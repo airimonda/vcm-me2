@@ -10,7 +10,7 @@ DEFAULT_CONFIG = REPO_ROOT / "config" / "runtime.yaml"
 
 DEFAULTS: dict = {
     "model": {"path": "models/vcm_conformer_M_ens3.onnx", "tau": None, "intra_threads": 2},
-    "wake": {"enabled": True, "path": "models/wake/vcm_wake_int8.onnx", "threshold": 0.55, "consecutive": 1,
+    "wake": {"enabled": True, "path": "models/wake/vcm_wake_v2.onnx", "threshold": 0.70, "threshold_music": 0.50, "consecutive": 1,
              "hop_s": 0.25, "cooldown_s": 1.0, "intra_threads": 1},
     "audio": {"backend": "auto", "device": None, "block_ms": 100, "play": True, "earcon_volume": 0.15,
               "inject": False},
