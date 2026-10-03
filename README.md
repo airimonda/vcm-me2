@@ -30,7 +30,8 @@ tau = 0.40, scored with `--final-test` on the speaker-disjoint **test** split (4
 | Synthetic-negative misfire (250 clips) | 0.0640 |
 
 Single model (294,246 parameters): 0.9354 / 0.7738 real-voice / OOS false accept 0.1711. DS-CNN M baseline with the
-same recipe: 0.8610. int8 ensemble: 0.9400. The real-voice gap, the test-split handling and other limits are in the
+same recipe: 0.8610; **size-matched baseline**, a 3-seed DS-CNN ensemble (924,810 parameters vs 882,738): 0.8727
+(real voices 0.5393, p ≈ 1e-61 against the released ensemble). int8 ensemble: 0.9400. The real-voice gap, the test-split handling and other limits are in the
 paper. On a Raspberry Pi 4 the fp32 ensemble takes 89 ms per 5-s window on one core (56 ms on two); int8 is not faster there (`results/bench_pi4.json`).
 
 **Results by split** (released fp32 ensemble, tau 0.40; "accuracy" = command and slot both right):
@@ -74,7 +75,8 @@ Dataset: [`airimonda/ai231-me2-voice-commands`](https://huggingface.co/datasets/
 | `models/vcm_conformer_M.onnx` + `.json` | single conformer (seed 0), fp32 (294,246 params, 1.94 MB) |
 | `models/vcm_conformer_M_int8.onnx` + `.json` | single conformer, int8 (1.36 MB) |
 | `models/ckpt/conformer_M_s{0,1,2}.pt` | PyTorch checkpoints of the three ensemble members |
-| `models/ckpt/ds_cnn_M_s0_baseline.pt` | DS-CNN M baseline checkpoint (same recipe) |
+| `models/ckpt/ds_cnn_M_s{0,1,2}_baseline.pt` | DS-CNN M baseline checkpoints (same recipe, seeds 0-2) |
+| `models/ds_cnn_M_ens3.onnx` + `.json` | size-matched baseline: 3-seed DS-CNN M ensemble (924,810 params) |
 | `results/` | bake-off tables, run summaries and logs, tau reports, per-clip predictions and metrics of every test scoring |
 | `models/wake/vcm_wake_v2.onnx` + `.labels.json` | **wake word "Watson", deployed** (DS-CNN, 25,730 params, fp32; threshold 0.70; added after `v1.0`) |
 | `models/wake/vcm_wake.onnx`, `vcm_wake_int8.onnx` | the earlier wake model (threshold 0.55), kept for comparison |

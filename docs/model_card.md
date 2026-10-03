@@ -33,6 +33,7 @@ Test split (4,443 clips; 76 out-of-scope; 250 synthetic negatives), τ = 0.40, s
 | Single fp32 (294,246) | 0.9354 | 0.7738 | 0.9397 | 0.9886 | 0.1711 | 0.0366 | 0.0760 |
 | Single int8 | 0.9343 | 0.7742 | 0.9386 | 0.9882 | 0.1711 | 0.0373 | 0.0720 |
 | DS-CNN M baseline (308,270), same recipe | 0.8610 | 0.5552 | 0.8728 | 0.9712 | 0.1447 | 0.0994 | 0.1160 |
+| DS-CNN M 3-seed ensemble (924,810), size-matched baseline | 0.8727 | 0.5393 | 0.8812 | 0.9795 | 0.0658 | 0.1058 | 0.0840 |
 
 Ensemble fp32 by voice type: clip accuracy 0.9895 on synthetic voices (3,619 clips) against 0.7379 on real voices (824 clips). Per-kind negative misfire (ensemble fp32): babble 0.20, truncated 0.10, reversed 0.02, noise-only 0.00, near-silence 0.00. Paired sign test, single against ensemble: 32 against 68 discordant clips, p = 0.0004. Raspberry Pi 4 (onnxruntime, 1 thread): 89 ms per 5-s window for the fp32 ensemble (RTF 0.018), 56 ms with 2 threads; int8 is not faster, so fp32 is deployed (`results/bench_pi4.json`).
 

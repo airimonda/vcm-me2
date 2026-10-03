@@ -489,6 +489,7 @@ All results below are on the test split (4,443 clips, 824 real, 3,619 synthetic;
 | Single int8 | 294,246 | 0.40 | 0.9343 | 0.7742 | 0.9386 | 0.9882 | 0.1711 | 0.0373 | 0.0720 |
 | DS-CNN M fp32 (same recipe) | 308,270 | 0.40 | 0.8610 | 0.5552 | 0.8728 | 0.9712 | 0.1447 | 0.0994 | 0.1160 |
 | DS-CNN M fp32 (same recipe) | 308,270 | 0.55 | 0.8079 | 0.4247 | 0.8197 | 0.9712 | 0.0526 | 0.1720 | not scored |
+| **DS-CNN M ensemble fp32 (3 seeds, same recipe; size-matched baseline)** | 924,810 | 0.40 | 0.8727 | 0.5393 | 0.8812 | 0.9795 | 0.0658 | 0.1058 | 0.0840 |
 
 ![Figure 5](figures/fig5_final_test.png)
 
@@ -504,10 +505,12 @@ All results below are on the test split (4,443 clips, 824 real, 3,619 synthetic;
 | Single int8 | 0.40 | 0.9336 | [0.9259, 0.9406] |
 | DS-CNN M fp32 (same recipe) | 0.40 | 0.8609 | [0.8504, 0.8708] |
 | DS-CNN M fp32 (same recipe) | 0.55 | 0.8087 | [0.7969, 0.8200] |
+| DS-CNN M ensemble fp32 (3 seeds) | 0.40 | 0.8731 | [0.8629, 0.8825] |
 
 **Observations.**
 
 * The ensemble improves on the single model in variation balanced accuracy (0.9431 against 0.9354) and, most of all, in out-of-scope false accept (9.2% against 17.1%, 7 and 13 of 76 clips). Real-voice variation balanced accuracy is unchanged (0.7727 against 0.7738).
+* **Size-matched baseline.** The released model is a 3-seed ensemble (882,738 parameters), so the fair baseline is a 3-seed DS-CNN M ensemble trained with the same recipe and the same τ (924,810 parameters, 4.8% more). It reaches 0.8727 variation balanced accuracy and 0.8731 clip accuracy against 0.9431 and 0.9428 for the conformer ensemble (353 against 43 discordant clips, p ≈ 1e-61); on real voices 0.5393 against 0.7727. Ensembling helps the DS-CNN too (0.8610 to 0.8727) and lowers its out-of-scope accept to 6.6% (5 of 76, below the conformer ensemble's 9.2%), but at 10.6% in-scope false reject against 4.0%. Files: `models/ds_cnn_M_ens3.onnx`, `models/ckpt/ds_cnn_M_s{0,1,2}_baseline.pt`, `results/final/ds_cnn_M_ens3_{test,neg_test}/`, `results/runs/ds_cnn_M_s{1,2}_tune_neg_mf1/`.
 * Both conformers are well ahead of the DS-CNN of the same size and recipe. Lowering the DS-CNN's false accept to 5.3% with τ = 0.55 costs it 17.2% in-scope false reject and a variation balanced accuracy of 0.8079.
 * Slot accuracy is high for all models (0.9937 for the ensemble) and is not the bottleneck.
 * int8 quantisation changes little for the single model (variation balanced accuracy 0.9354 to 0.9343) and costs the ensemble 0.0031 in variation balanced accuracy, 0.0087 in real-voice score, and 1.3 points of out-of-scope false accept (9.2% to 10.5%, one extra clip of 76).
@@ -554,13 +557,14 @@ The gap between real and synthetic voices is large for every model. For the ense
 | Single fp32 vs ensemble fp32 | 32 | 68 | 4343 | 0.00041 |
 | Single fp32 vs DS-CNN M (τ=0.40) | 402 | 74 | 3967 | 1.3e-55 |
 | Ensemble fp32 vs DS-CNN M (τ=0.40) | 414 | 50 | 3979 | 2.1e-72 |
+| Ensemble fp32 vs DS-CNN M ensemble (τ=0.40) | 353 | 43 | 4047 | 1.1e-61 |
 
 * single fp32 against int8: 24 against 19 discordant clips, p = 0.54, no detectable difference;
 * ensemble fp32 against int8: 22 against 8, p = 0.016, a small but detectable cost of quantisation;
 * single against ensemble: 32 against 68, p = 0.0004;
 * conformer single against DS-CNN: 402 against 74, p ≈ 1e-55.
 
-The p-values are for clip-level correctness over all 4,443 clips and do not account for speaker clustering (clips from one speaker are not independent), so they overstate the evidence somewhat. The same-recipe comparison with the DS-CNN rests on one DS-CNN seed.
+The p-values are for clip-level correctness over all 4,443 clips and do not account for speaker clustering (clips from one speaker are not independent), so they overstate the evidence somewhat. The single-network DS-CNN comparison rests on one seed; the size-matched comparison uses three DS-CNN seeds.
 
 ---
 
@@ -669,7 +673,7 @@ real-versus-synthetic gap as on test (Section 7e).
 7. **Fixed-window, offline preprocessing.** The model takes exactly 5 s. Evaluation clips were speech-trimmed and centred in the window by `pack_data.py`; that endpointing step is not part of the model, and the behaviour on untrimmed, streaming microphone input is unmeasured.
 8. **Wake word not yet retrained.** There is no wake-word stage. A wake word detector, if used, has not yet been retrained for this pipeline.
 9. **Latency measured in isolation.** Model latency on a Pi 4 is far below real time (Section 8), but end-to-end latency of the live pipeline (wake word, endpointing, actuation) and a Pi 5 have not been measured.
-10. **Single DS-CNN seed, single-seed ablations.** The baseline comparison and the ablations in Section 7c rest on one seed each; only the final recipe has three seeds.
+10. **Single-seed ablations.** The ablations in Section 7c rest on one seed each. The final recipe and the size-matched DS-CNN baseline have three seeds; the single-network DS-CNN comparison uses one.
 11. **Live test not run.** The holdout split (202 clips) has not been used.
 
 ---
